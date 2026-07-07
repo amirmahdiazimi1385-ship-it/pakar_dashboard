@@ -53,7 +53,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- لینک ابری گوگل شیت (در اینجا جایگذاری کنید) ---
+        // --- لینک ابری گوگل شیت اختصاصی شما (جایگذاری شده توسط سیستم) ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMkx_WdDRFimencpg5-Ou7GzmUjI0wiAfgajnK-u8w7aq2ujQZwd0BNnoUi1QF7xv9Ow/exec";
 
         // --- داده‌های اولیه استاندارد ---
@@ -116,22 +116,15 @@
             );
         };
 
-        const PerformanceDot = ({ percent }) => {
-            const p = Number(percent) || 0;
-            const color = p >= 80 ? 'bg-green-500' : p >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-            return (
-                <div className="flex items-center gap-1.5" title={`میزان تحقق: ${p}%`}>
-                    <div className={`w-2 h-2 rounded-full ${color} shadow-[0_0_8px_${color}]`}></div>
-                    <span className="text-xs text-slate-400">{p}%</span>
-                </div>
-            );
-        };
-
-        // --- کامپوننت‌های ویرایشگر محلی ---
-        const StatusManager = ({ statuses, onUpdate }) => {
+        // --- کامپوننت‌های ویرایشگر محلی و داینامیک ---
+        const StatusManager = ({ statuses = [], onUpdate }) => {
+            const safeStatuses = Array.isArray(statuses) ? statuses : []; // کنترل خطای فرمت داده
             const [isOpen, setIsOpen] = useState(false);
-            const [localStatuses, setLocalStatuses] = useState([...statuses]);
+            const [localStatuses, setLocalStatuses] = useState([...safeStatuses]);
             const [newStatus, setNewStatus] = useState('');
+
+            // بروزرسانی استیت محلی وقتی که تنظیمات خارجی تغییر میکنند
+            useEffect(() => { setLocalStatuses(Array.isArray(statuses) ? [...statuses] : []); }, [statuses]);
 
             const handleAdd = () => { if(newStatus.trim() && !localStatuses.includes(newStatus)) { setLocalStatuses([...localStatuses, newStatus.trim()]); setNewStatus(''); }};
             const handleRemove = (s) => setLocalStatuses(localStatuses.filter(x => x !== s));
@@ -163,16 +156,18 @@
         };
 
         const SubtaskEditor = ({ value = [], onChange }) => {
-            const addSubtask = () => onChange([...(value || []), { title: '', status: 'آغاز نشده' }]);
-            const updateSubtask = (idx, key, val) => { const newV = [...value]; newV[idx][key] = val; onChange(newV); };
-            const removeSubtask = (idx) => onChange(value.filter((_, i) => i !== idx));
+            const safeValue = Array.isArray(value) ? value : []; // پیشگیری از خطای مپ روی دیتای قدیمی
+            
+            const addSubtask = () => onChange([...safeValue, { title: '', status: 'آغاز نشده' }]);
+            const updateSubtask = (idx, key, val) => { const newV = [...safeValue]; newV[idx][key] = val; onChange(newV); };
+            const removeSubtask = (idx) => onChange(safeValue.filter((_, i) => i !== idx));
 
             return (
                 <div className="space-y-2 min-w-[200px] p-2 bg-slate-900 rounded-lg border border-slate-700">
-                    {(value || []).map((st, i) => (
+                    {safeValue.map((st, i) => (
                         <div key={i} className="flex gap-1 items-center">
-                            <input type="text" value={st.title} onChange={e => updateSubtask(i, 'title', e.target.value)} placeholder="عنوان ساب‌تسک/مایلستون" className="w-full text-xs p-1 rounded bg-slate-950 border border-slate-700" />
-                            <select value={st.status} onChange={e => updateSubtask(i, 'status', e.target.value)} className="w-24 text-xs p-1 rounded bg-slate-950 border border-slate-700">
+                            <input type="text" value={st.title || ''} onChange={e => updateSubtask(i, 'title', e.target.value)} placeholder="عنوان ساب‌تسک/مایلستون" className="w-full text-xs p-1 rounded bg-slate-950 border border-slate-700" />
+                            <select value={st.status || 'آغاز نشده'} onChange={e => updateSubtask(i, 'status', e.target.value)} className="w-24 text-xs p-1 rounded bg-slate-950 border border-slate-700">
                                 <option>آغاز نشده</option><option>در حال انجام</option><option>انجام شده</option><option>متوقف</option>
                             </select>
                             <button onClick={() => removeSubtask(i)} className="text-red-400 hover:text-red-300 px-1"><i className="fa-solid fa-trash text-xs"></i></button>
@@ -186,12 +181,16 @@
         // --- بخش استاندارد (جدول جامع لاین/پروژه) ---
         const StandardSection = ({ type, title, iconClass, data = [], settings, onUpdateSettings, onSaveData }) => {
             const [isEditing, setIsEditing] = useState(false);
-            const [localData, setLocalData] = useState([...data]);
-            useEffect(() => setLocalData([...data]), [data]);
+            const safeData = Array.isArray(data) ? data : [];
+            const [localData, setLocalData] = useState([...safeData]);
+            
+            useEffect(() => setLocalData(Array.isArray(data) ? [...data] : []), [data]);
 
             const isProject = type === 'project';
+            const rawStatuses = settings?.statuses;
+            const availableStatuses = Array.isArray(rawStatuses) ? rawStatuses : ['جاری', 'متوقف'];
 
-            const handleAdd = () => setLocalData([...localData, { id: Date.now(), name: '', owner: '', status: settings.statuses[0] || '', challenges: '', ...(isProject ? {progress: 0, subtasks: []} : {target: '', current: '', performance: 0}) }]);
+            const handleAdd = () => setLocalData([...localData, { id: Date.now() + Math.random(), name: '', owner: '', status: availableStatuses[0] || '', challenges: '', ...(isProject ? {progress: 0, subtasks: []} : {target: '', current: '', performance: 0}) }]);
             const handleRemove = (id) => setLocalData(localData.filter(item => item.id !== id));
             const handleChange = (id, key, value) => setLocalData(localData.map(item => item.id === id ? { ...item, [key]: value } : item));
             const handleSubmit = () => { onSaveData(localData); setIsEditing(false); };
@@ -222,28 +221,27 @@
                                     {!isProject && <th className="py-3 px-4 font-medium w-32">تارگت / شاخص</th>}
                                     {!isProject && <th className="py-3 px-4 font-medium w-32">آمار فعلی</th>}
                                     {isProject && <th className="py-3 px-4 font-medium w-64">مایلستون‌ها / ساب‌تسک‌ها</th>}
-                                    <th className="py-3 px-4 font-medium w-32">پرفورمنس</th>
+                                    <th className="py-3 px-4 font-medium w-32">پرفورمنس / پیشرفت</th>
                                     <th className="py-3 px-4 font-medium w-32">
                                         وضعیت 
-                                        {isEditing && <StatusManager statuses={settings.statuses} onUpdate={s => onUpdateSettings('statuses', s)} />}
+                                        {isEditing && <StatusManager statuses={availableStatuses} onUpdate={s => onUpdateSettings('statuses', s)} />}
                                     </th>
                                     <th className="py-3 px-4 font-medium min-w-[200px]">چالش‌ها و ملاحظات</th>
                                     {isEditing && <th className="py-3 px-4 font-medium text-center w-12">حذف</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/60">
-                                {localData.map((row) => (
+                                {localData.map((row) => {
+                                    const safeSubtasks = Array.isArray(row.subtasks) ? row.subtasks : []; // بررسی سلامت دیتای ابری
+                                    return (
                                     <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
-                                        {/* Name */}
                                         <td className="py-3 px-4">
                                             {isEditing ? <input type="text" value={row.name||''} onChange={e=>handleChange(row.id, 'name', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="font-bold text-slate-200">{row.name||'-'}</span>}
                                         </td>
-                                        {/* Owner */}
                                         <td className="py-3 px-4">
                                             {isEditing ? <input type="text" value={row.owner||''} onChange={e=>handleChange(row.id, 'owner', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">{row.owner||'-'}</span>}
                                         </td>
                                         
-                                        {/* Lines specific: Target & Current */}
                                         {!isProject && (
                                             <>
                                                 <td className="py-3 px-4">{isEditing ? <input type="text" value={row.target||''} onChange={e=>handleChange(row.id, 'target', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="text-slate-300 text-xs">{row.target||'-'}</span>}</td>
@@ -251,12 +249,11 @@
                                             </>
                                         )}
 
-                                        {/* Projects specific: Subtasks */}
                                         {isProject && (
                                             <td className="py-2 px-4">
-                                                {isEditing ? <SubtaskEditor value={row.subtasks} onChange={v=>handleChange(row.id, 'subtasks', v)} /> : 
+                                                {isEditing ? <SubtaskEditor value={safeSubtasks} onChange={v=>handleChange(row.id, 'subtasks', v)} /> : 
                                                     <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
-                                                        {row.subtasks?.length ? row.subtasks.map((st, i)=>(
+                                                        {safeSubtasks.length > 0 ? safeSubtasks.map((st, i)=>(
                                                             <div key={i} className="text-[11px] flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.status==='انجام شده'?'bg-green-500':st.status==='در حال انجام'?'bg-blue-500':'bg-slate-600'}`}></span><span className="text-slate-300">{st.title}</span><span className="text-slate-500 opacity-70">({st.status})</span></div>
                                                         )) : <span className="text-slate-600 text-xs">-</span>}
                                                     </div>
@@ -264,7 +261,6 @@
                                             </td>
                                         )}
 
-                                        {/* Performance (Rate or Progress) */}
                                         <td className="py-3 px-4">
                                             {isEditing ? (
                                                 <div className="flex flex-col justify-center min-w-[120px]">
@@ -281,35 +277,32 @@
                                                     </div>
                                                 </div>
                                             ) : (
-                                                isProject ? <ProgressBar percent={row.progress} /> : <PerformanceDot percent={row.performance} />
+                                                <ProgressBar percent={isProject ? row.progress : row.performance} />
                                             )}
                                         </td>
 
-                                        {/* Status */}
                                         <td className="py-3 px-4">
                                             {isEditing ? (
                                                 <select value={row.status||''} onChange={e=>handleChange(row.id, 'status', e.target.value)} className="w-full text-xs p-1.5 rounded appearance-none">
                                                     <option value="">انتخاب...</option>
-                                                    {settings.statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                    {availableStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                                                 </select>
                                             ) : (
                                                 <span className="text-[11px] font-bold bg-blue-900/30 text-blue-400 border border-blue-800/50 px-2 py-1 rounded">{row.status||'-'}</span>
                                             )}
                                         </td>
 
-                                        {/* Challenges */}
                                         <td className="py-3 px-4">
                                             {isEditing ? <textarea rows="2" value={row.challenges||''} onChange={e=>handleChange(row.id, 'challenges', e.target.value)} className="w-full text-xs p-1.5 rounded resize-none" placeholder="یادداشت..." /> : <div className="text-[11px] text-slate-400 max-w-xs whitespace-normal leading-relaxed">{row.challenges||'-'}</div>}
                                         </td>
 
-                                        {/* Delete */}
                                         {isEditing && (
                                             <td className="py-3 px-4 text-center">
                                                 <button onClick={() => handleRemove(row.id)} className="text-slate-500 hover:text-red-400 transition-colors p-2 bg-slate-950 rounded-lg hover:bg-slate-900"><i className="fa-solid fa-trash-can text-sm"></i></button>
                                             </td>
                                         )}
                                     </tr>
-                                ))}
+                                )})}
                             </tbody>
                         </table>
                         
@@ -337,8 +330,8 @@
                         <p className="text-slate-500 text-xs mt-1 font-medium">پایش لاین‌های روتین و پروژه‌های در حال توسعه</p>
                     </div>
                 </div>
-                <StandardSection type="line" title="لاین‌های روتین (شاخص‌های عملکردی)" iconClass="fa-solid fa-chart-line" data={data?.lines} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, lines: newData })} />
-                <StandardSection type="project" title="پروژه‌ها و توسعه (تایم‌لاین و مایلستون‌ها)" iconClass="fa-solid fa-rocket" data={data?.projects} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, projects: newData })} />
+                <StandardSection type="line" title="لاین‌های روتین (شاخص‌های عملکردی)" iconClass="fa-solid fa-chart-line" data={data?.lines || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, lines: newData })} />
+                <StandardSection type="project" title="پروژه‌ها و توسعه (تایم‌لاین و مایلستون‌ها)" iconClass="fa-solid fa-rocket" data={data?.projects || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, projects: newData })} />
             </div>
         );
 
@@ -347,10 +340,7 @@
             return (
                 <div className="relative flex flex-col mt-3 first:mt-0">
                     <div className="flex items-center relative z-10">
-                        {/* خط افقی متصل به والد */}
                         <div className="absolute w-6 border-t-2 border-slate-700 -right-6"></div>
-                        
-                        {/* باکس اصلی نود */}
                         <div className={`px-3 py-1.5 rounded-lg border shadow-md flex items-center gap-2 whitespace-nowrap
                             ${type === 'root' ? 'bg-blue-600 border-blue-400 text-white text-base font-black' : 
                               type === 'team' ? 'bg-slate-800 border-blue-500/50 text-blue-300 text-[13px] font-bold' : 
@@ -359,8 +349,6 @@
                             {title}
                         </div>
                     </div>
-                    
-                    {/* رندر زیرمجموعه‌ها و خط عمودی ارتباطی */}
                     {children && React.Children.toArray(children).length > 0 && (
                         <div className="relative pr-6 mt-1 flex flex-col gap-1 pb-1">
                             <div className="absolute right-0 top-0 bottom-[14px] border-r-2 border-slate-700"></div>
@@ -394,29 +382,21 @@
 
                     <div className="bg-slate-900/60 rounded-xl border border-slate-800 overflow-x-auto p-6 shadow-lg hover:border-slate-700 transition-colors custom-scrollbar">
                         <div className="flex gap-6 min-w-max pb-4 pr-4">
-                            
-                            {/* ریشه نمودار */}
                             <div className="relative flex items-center z-10">
-                                <div className="px-5 py-3 rounded-xl bg-gradient-to-l from-blue-600 to-indigo-700 text-white font-black text-sm border border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                                    پلتفرم پاکار
-                                </div>
+                                <div className="px-5 py-3 rounded-xl bg-gradient-to-l from-blue-600 to-indigo-700 text-white font-black text-sm border border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.3)]">پلتفرم پاکار</div>
                                 <div className="absolute w-6 border-t-2 border-slate-700 -left-6 top-1/2"></div>
                             </div>
                             
-                            {/* ستون تیم‌ها */}
                             <div className="relative flex flex-col justify-center">
-                                {/* خط عمودی ارتباطی تیم‌ها به ریشه */}
                                 <div className="absolute right-0 top-[28px] bottom-[28px] border-r-2 border-slate-700"></div>
-                                
                                 {teams.map((team) => {
                                     const teamData = data[team.key];
-                                    const lines = teamData?.lines || [];
-                                    const projects = teamData?.projects || [];
+                                    const lines = Array.isArray(teamData?.lines) ? teamData.lines : [];
+                                    const projects = Array.isArray(teamData?.projects) ? teamData.projects : [];
                                     if (lines.length === 0 && projects.length === 0) return null;
                                     
                                     return (
                                         <MindMapNode key={team.key} title={<><i className={`fa-solid ${team.icon} opacity-80`}></i> {team.name}</>} type="team">
-                                            
                                             {lines.length > 0 && (
                                                 <MindMapNode title="لاین‌های روتین" type="category">
                                                     {lines.map(line => (
@@ -424,7 +404,6 @@
                                                     ))}
                                                 </MindMapNode>
                                             )}
-                                            
                                             {projects.length > 0 && (
                                                 <MindMapNode title="پروژه‌ها و توسعه" type="category">
                                                     {projects.map(proj => (
@@ -432,7 +411,6 @@
                                                     ))}
                                                 </MindMapNode>
                                             )}
-
                                         </MindMapNode>
                                     )
                                 })}
@@ -456,9 +434,23 @@
                 if (GOOGLE_SCRIPT_URL !== "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
                     setIsLoading(true);
                     fetch(GOOGLE_SCRIPT_URL).then(res => res.json()).then(result => {
-                        if (result && result.support) { setData(result); showNotification("داده‌ها همگام‌سازی شدند ✅"); }
+                        // ادغام هوشمند: پیشگیری از کرش در صورت عدم تطابق ساختار قدیمی گوگل با جدید
+                        if (result && !result.error && (result.support || result.settings)) { 
+                            const mergedData = { 
+                                ...initialData, 
+                                ...result, 
+                                settings: { ...initialData.settings, ...(result.settings || {}) }
+                            };
+                            setData(mergedData);
+                            showNotification("داده‌ها همگام‌سازی شدند ✅"); 
+                        } else {
+                            showNotification("دیتابیس ابری خالی است. از نسخه پیش‌فرض استفاده می‌شود.");
+                        }
                         setIsLoading(false);
-                    }).catch(err => { showNotification("خطا در ارتباط با گوگل شیت! ❌"); setIsLoading(false); });
+                    }).catch(err => { 
+                        showNotification("خطا در ارتباط با گوگل شیت! ❌", true); 
+                        setIsLoading(false); 
+                    });
                 }
             }, []);
 
@@ -485,7 +477,12 @@
             };
 
             const updateData = (teamKey, teamData) => setData(prev => ({ ...prev, [teamKey]: teamData }));
-            const updateSettings = (key, val) => setData(prev => ({ ...prev, settings: { ...prev.settings, [key]: val } }));
+            
+            // رفع خطای احتمالی در ذخیره تنظیمات جدید
+            const updateSettings = (key, val) => setData(prev => ({ 
+                ...prev, 
+                settings: { ...(prev.settings || {}), [key]: val } 
+            }));
 
             const saveAllToCloud = () => {
                 if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") { showNotification("لینک گوگل شیت تنظیم نشده است!", true); return; }
@@ -565,7 +562,7 @@
                         {isLoading && (
                             <div className="fixed inset-0 bg-[#020617]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-3">
                                 <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm font-bold text-blue-400 tracking-wide animate-pulse">در حال همگام‌سازی از گوگل کلود...</span>
+                                <span className="text-sm font-bold text-blue-400 tracking-wide animate-pulse">در حال دریافت جدیدترین داده‌ها از ابر...</span>
                             </div>
                         )}
 
