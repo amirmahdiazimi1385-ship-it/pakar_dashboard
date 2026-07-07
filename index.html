@@ -53,8 +53,9 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- لینک ابری گوگل شیت اختصاصی شما (جایگذاری شده توسط سیستم) ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMkx_WdDRFimencpg5-Ou7GzmUjI0wiAfgajnK-u8w7aq2ujQZwd0BNnoUi1QF7xv9Ow/exec"
+        // --- لینک ابری گوگل شیت اختصاصی شما ---
+        // اگر بعد از اجرای مراحل بالا لینک جدیدی گرفتید، آن را جایگزین لینک زیر کنید:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMkx_WdDRFimencpg5-Ou7GzmUjI0wiAfgajnK-u8w7aq2ujQZwd0BNnoUi1QF7xv9Ow/exec";
 
         // --- داده‌های اولیه استاندارد ---
         const initialData = {
@@ -448,7 +449,7 @@
                         }
                         setIsLoading(false);
                     }).catch(err => { 
-                        showNotification("خطا در ارتباط با گوگل شیت! ❌", true); 
+                        showNotification("خطا در ارتباط با گوگل شیت! (دسترسی اسکریپت را چک کنید) ❌", true); 
                         setIsLoading(false); 
                     });
                 }
