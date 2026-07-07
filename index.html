@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد یکپارچه شوری مدیران پاکار</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Vazirmatn', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- آدرس وب‌اپلیکیشن گوگل شما ---
+        // پس از انجام مراحل راهنمایی، آدرس URL دریافتی از گوگل را در اینجا جایگذاری کنید:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMkx_WdDRFimencpg5-Ou7GzmUjI0wiAfgajnK-u8w7aq2ujQZwd0BNnoUi1QF7xv9Ow/exec";
+
+        // --- آیکون‌ها ---
+        const LayoutDashboard = ({className}) => <i className={`fa-solid fa-border-all ${className}`}></i>;
+        const Headset = ({className}) => <i className={`fa-solid fa-headset ${className}`}></i>;
+        const PenTool = ({className}) => <i className={`fa-solid fa-pen-nib ${className}`}></i>;
+        const Megaphone = ({className}) => <i className={`fa-solid fa-bullhorn ${className}`}></i>;
+        const Handshake = ({className}) => <i className={`fa-solid fa-handshake ${className}`}></i>;
+        const Code2 = ({className}) => <i className={`fa-solid fa-code ${className}`}></i>;
+        const Plus = ({className}) => <i className={`fa-solid fa-plus ${className}`}></i>;
+        const Trash2 = ({className}) => <i className={`fa-solid fa-trash ${className}`}></i>;
+        const Edit2 = ({className}) => <i className={`fa-solid fa-pen ${className}`}></i>;
+        const Check = ({className}) => <i className={`fa-solid fa-check ${className}`}></i>;
+        const TrendingUp = ({className}) => <i className={`fa-solid fa-arrow-trend-up ${className}`}></i>;
+        const Users = ({className}) => <i className={`fa-solid fa-users ${className}`}></i>;
+        const BookOpen = ({className}) => <i className={`fa-solid fa-book-open ${className}`}></i>;
+        const Video = ({className}) => <i className={`fa-solid fa-video ${className}`}></i>;
+        const Calendar = ({className}) => <i className={`fa-regular fa-calendar-days ${className}`}></i>;
+        const Play = ({className}) => <i className={`fa-solid fa-play ${className}`}></i>;
+        const SaveIcon = ({className}) => <i className={`fa-solid fa-cloud-arrow-up ${className}`}></i>;
+
+        // --- داده‌های دمو اولیه (در صورتی که دیتابیس خالی باشد) ---
+        const initialData = {
+            support: {
+                calls: [
+                    { id: 1, name: 'رد و تایید فرصت ها', kpi: '۱۲۰ مورد/هفته', currentStats: '۱۱۵ مورد', phase: 'جاری', challenges: '', analyses: '' },
+                    { id: 2, name: 'احراز هویت مالی', kpi: '۴۵ مورد/هفته', currentStats: '۴۰ مورد', phase: 'جاری', challenges: 'کندی در دریافت مدارک', analyses: '' },
+                    { id: 3, name: 'تماس های ورودی', kpi: '۳۰۰ مورد/هفته', currentStats: '۲۸۰ مورد', phase: 'جاری', challenges: '', analyses: '' },
+                    { id: 4, name: 'تماس بررسی داوطلبین', kpi: '۵۰ مورد/هفته', currentStats: '۴۵ مورد', phase: 'جاری', challenges: '', analyses: '' }
+                ],
+                projects: [
+                    { id: 1, name: 'تهیه هدیه های لیگ فصلی', progress: '۸۰٪', details: 'هماهنگی با تامین‌کنندگان انجام شده است.', subtasks: [{title: 'سفارش هدایا', status: 'انجام شده'}, {title: 'ارسال', status: 'آغاز نشده'}] }
+                ]
+            },
+            content: {
+                social: [
+                    { id: 1, name: 'پست های اینستاگرام', metric: '۴ پست در هفته' }
+                ],
+                research: [
+                    { id: 1, name: 'سند مفاهیم کار داوطلبانه', phases: { available: ['فاز ۱', 'فاز ۲', 'فاز ۳'], current: 'فاز ۲' }, status: 'در حال انجام' }
+                ],
+                media: [
+                    { id: 1, name: 'ضبط اپیزود پادکست پاکار', subtasks: [{title: 'پیش‌تولید', status: 'انجام شده'}, {title: 'ضبط', status: 'در حال انجام'}] }
+                ],
+                education: [
+                    { id: 1, title: 'وبینار آشنایی با CSR', date: '۱۵ مرداد', attendees: '۱۲۰ نفر', status: 'برنامه‌ریزی شده', subtasks: [{title:'طراحی پوستر', status:'انجام شده'}] }
+                ]
+            },
+            marketing: {
+                marketingDoc: [
+                    { id: 1, phaseName: 'فاز ۱: تحقیقات بازار', status: 'تکمیل شده' }
+                ],
+                ads: [
+                    { id: 1, platform: 'کافه بازار (CPI)', budget: '۵ میلیون/هفته', result: '۴۵۰ نصب' }
+                ]
+            },
+            pr: {
+                partners: [
+                    { id: 1, name: 'شرکت همراه اول', phase: 'مذاکره اولیه', type: 'CSR' }
+                ],
+                projects: [
+                    { id: 1, name: 'طراحی سند ساختار همکاری', status: 'بازنگری نهایی' }
+                ]
+            },
+            product: {
+                features: [
+                    { id: 1, name: 'بازطراحی پروفایل کاربری', sprint: 'اسپرینت ۳۴', endDate: '۱۵ شهریور', status: 'In Progress', desc: 'بهبود UX برای نمایش امتیازات' }
+                ]
+            }
+        };
+
+        // --- زیر کامپوننت‌های اختصاصی ادیتور ---
+        const SubtaskEditor = ({ value = [], onChange }) => {
+            const addSubtask = () => onChange([...(value || []), { title: '', status: 'آغاز نشده' }]);
+            const updateSubtask = (idx, key, val) => {
+                const newV = [...value];
+                newV[idx][key] = val;
+                onChange(newV);
+            };
+            const removeSubtask = (idx) => onChange(value.filter((_, i) => i !== idx));
+
+            return (
+                <div className="space-y-2 min-w-[280px] p-2 bg-slate-50/80 rounded-lg border border-gray-200">
+                    {(value || []).map((st, i) => (
+                        <div key={i} className="flex gap-2 items-center">
+                            <input type="text" value={st.title} onChange={e => updateSubtask(i, 'title', e.target.value)} placeholder="عنوان ساب‌تسک" className="border border-gray-300 px-2 py-1 w-full text-xs rounded shadow-sm focus:ring-1 focus:ring-indigo-400 outline-none" />
+                            <select value={st.status} onChange={e => updateSubtask(i, 'status', e.target.value)} className="border border-gray-300 px-2 py-1 text-xs rounded bg-white shadow-sm outline-none">
+                                <option>آغاز نشده</option>
+                                <option>در حال انجام</option>
+                                <option>انجام شده</option>
+                                <option>به مشکل خورده</option>
+                            </select>
+                            <button onClick={() => removeSubtask(i)} className="text-red-400 hover:text-red-600 p-1"><Trash2 /></button>
+                        </div>
+                    ))}
+                    <button onClick={addSubtask} className="text-xs text-indigo-600 font-bold flex items-center gap-1 hover:text-indigo-800 mt-1"><Plus /> افزودن ساب‌تسک</button>
+                </div>
+            );
+        };
+
+        const PhaseEditor = ({ value = { available: [], current: '' }, onChange }) => {
+            const safeValue = value || { available: [], current: '' };
+            const addPhase = () => onChange({ ...safeValue, available: [...(safeValue.available || []), `فاز ${(safeValue.available || []).length + 1}`] });
+            const updatePhaseName = (idx, val) => {
+                const newAvail = [...safeValue.available];
+                const oldName = newAvail[idx];
+                newAvail[idx] = val;
+                const newCurrent = safeValue.current === oldName ? val : safeValue.current;
+                onChange({ available: newAvail, current: newCurrent });
+            }
+            return (
+                <div className="space-y-2 min-w-[220px] p-3 bg-slate-50/80 rounded-lg border border-gray-200">
+                    <div className="text-xs text-slate-500 font-bold mb-1">فازهای تشکیل شده:</div>
+                    {(safeValue.available || []).map((ph, i) => (
+                        <input key={i} type="text" value={ph} onChange={e => updatePhaseName(i, e.target.value)} className="border border-gray-300 px-2 py-1.5 w-full text-xs rounded bg-white mb-1.5 shadow-sm focus:ring-1 focus:ring-indigo-400 outline-none" />
+                    ))}
+                    <button onClick={addPhase} className="text-xs text-indigo-600 font-bold flex items-center gap-1 hover:text-indigo-800 mb-3"><Plus /> تشکیل فاز جدید</button>
+                    
+                    <div className="text-xs text-slate-500 font-bold mt-3 mb-1 pt-2 border-t border-gray-200">فاز در حال اجرا:</div>
+                    <select value={safeValue.current} onChange={e => onChange({...safeValue, current: e.target.value})} className="border border-indigo-300 px-2 py-1.5 w-full text-xs rounded bg-indigo-50 text-indigo-800 shadow-sm font-medium">
+                        <option value="">انتخاب کنید...</option>
+                        {(safeValue.available || []).map(ph => <option key={ph} value={ph}>{ph}</option>)}
+                    </select>
+                </div>
+            );
+        };
+
+        // --- جدول داینامیک اصلی ---
+        const DynamicTable = ({ title, columns, data, onSave, icon: Icon }) => {
+            const [isEditing, setIsEditing] = useState(false);
+            const [localData, setLocalData] = useState(data);
+
+            useEffect(() => setLocalData(data), [data]);
+
+            const handleAdd = () => {
+                setLocalData([...localData, { id: Date.now(), ...columns.reduce((acc, col) => ({ ...acc, [col.key]: '' }), {}) }]);
+            };
+
+            const handleRemove = (id) => {
+                setLocalData(localData.filter(item => item.id !== id));
+            };
+
+            const handleChange = (id, key, value) => {
+                setLocalData(localData.map(item => item.id === id ? { ...item, [key]: value } : item));
+            };
+
+            const handleSubmit = () => {
+                onSave(localData);
+                setIsEditing(false);
+            };
+
+            const renderDisplayCell = (row, col) => {
+                if (col.type === 'subtasks') {
+                    return (
+                        <div className="space-y-1.5 py-1">
+                            {(!row[col.key] || row[col.key].length === 0) && <span className="text-xs text-gray-400">-</span>}
+                            {(row[col.key] || []).map((st, i) => (
+                                <div key={i} className="text-xs flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${st.status === 'انجام شده' ? 'bg-green-500' : st.status === 'در حال انجام' ? 'bg-blue-500' : st.status === 'به مشکل خورده' ? 'bg-red-500' : 'bg-gray-300'}`}></span>
+                                    <span className="font-medium text-slate-700">{st.title}</span> 
+                                    <span className="text-[10px] text-slate-500">({st.status})</span>
+                                </div>
+                            ))}
+                        </div>
+                    );
+                }
+                if (col.type === 'phases') {
+                    return (
+                        <span className="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs font-medium inline-block">
+                            {row[col.key]?.current || 'تعریف نشده'}
+                        </span>
+                    );
+                }
+                if (col.type === 'textarea') {
+                    return (
+                        <div className="whitespace-pre-wrap text-xs text-slate-600 min-w-[120px] max-w-xs leading-relaxed py-1">
+                            {row[col.key] || '-'}
+                        </div>
+                    );
+                }
+                return (
+                    <span className={col.isBadge ? 'bg-slate-100 border border-slate-200 text-slate-700 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap' : 'text-slate-700'}>
+                        {row[col.key] || '-'}
+                    </span>
+                );
+            };
+
+            const renderEditCell = (row, col) => {
+                if (col.type === 'textarea') {
+                    return (
+                        <textarea 
+                            value={row[col.key] || ''} 
+                            onChange={(e) => handleChange(row.id, col.key, e.target.value)}
+                            className="w-full min-w-[150px] bg-white border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-y min-h-[60px]"
+                        />
+                    );
+                }
+                if (col.type === 'subtasks') {
+                    return <SubtaskEditor value={row[col.key]} onChange={(val) => handleChange(row.id, col.key, val)} />;
+                }
+                if (col.type === 'phases') {
+                    return <PhaseEditor value={row[col.key]} onChange={(val) => handleChange(row.id, col.key, val)} />;
+                }
+                if (col.type === 'datalist') {
+                    const listId = `list-${col.key}-${row.id}`;
+                    return (
+                        <>
+                            <input 
+                                list={listId} 
+                                value={row[col.key] || ''} 
+                                onChange={(e) => handleChange(row.id, col.key, e.target.value)}
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"
+                            />
+                            <datalist id={listId}>
+                                {col.options?.map(opt => <option key={opt} value={opt} />)}
+                            </datalist>
+                        </>
+                    );
+                }
+                return (
+                    <input 
+                        type="text" 
+                        value={row[col.key] || ''} 
+                        onChange={(e) => handleChange(row.id, col.key, e.target.value)}
+                        className="w-full bg-white border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"
+                    />
+                );
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                    {title && (
+                        <div className="bg-slate-50 border-b border-gray-100 p-4 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                            {Icon && <Icon className="text-indigo-600" />}
+                            {title}
+                            </h3>
+                            {!isEditing ? (
+                            <button onClick={() => setIsEditing(true)} className="text-sm flex items-center gap-1 text-slate-600 hover:text-indigo-600 transition-colors">
+                                <Edit2 className="w-3 h-3" /> ویرایش محلی
+                            </button>
+                            ) : (
+                            <button onClick={handleSubmit} className="text-sm flex items-center gap-1 bg-green-500 text-white px-4 py-1.5 rounded-lg hover:bg-green-600 transition-colors shadow-sm font-medium">
+                                <Check className="w-3 h-3" /> اعمال موقت
+                            </button>
+                            )}
+                        </div>
+                    )}
+                
+                    <div className="p-4 overflow-x-auto">
+                        <table className="w-full text-right text-sm">
+                        <thead>
+                            <tr className="text-slate-500 border-b border-gray-100">
+                            {columns.map((col, idx) => (
+                                <th key={idx} className="pb-3 font-medium px-2 whitespace-nowrap">{col.label}</th>
+                            ))}
+                            {isEditing && <th className="pb-3 font-medium px-2 text-center w-16">عملیات</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {localData.map((row) => (
+                            <tr key={row.id} className="border-b border-gray-50 align-top last:border-0 hover:bg-slate-50/50 transition-colors">
+                                {columns.map((col, idx) => (
+                                <td key={idx} className="py-3 px-2">
+                                    {isEditing ? renderEditCell(row, col) : renderDisplayCell(row, col)}
+                                </td>
+                                ))}
+                                {isEditing && (
+                                <td className="py-3 px-2 text-center align-middle">
+                                    <button onClick={() => handleRemove(row.id)} className="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg transition-colors">
+                                    <Trash2 />
+                                    </button>
+                                </td>
+                                )}
+                            </tr>
+                            ))}
+                        </tbody>
+                        </table>
+                        
+                        {isEditing && (
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                            <button onClick={handleAdd} className="text-sm flex items-center gap-1 text-indigo-600 font-bold hover:text-indigo-800">
+                            <Plus /> افزودن سطر جدید
+                            </button>
+                        </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- تب‌ها ---
+        const OverviewTab = ({ data }) => (
+            <div className="space-y-6 fade-in">
+                <div className="bg-gradient-to-l from-indigo-600 to-blue-500 rounded-2xl p-8 text-white shadow-lg">
+                    <h2 className="text-2xl font-bold mb-2">داشبورد یکپارچه شوری مدیران پاکار</h2>
+                    <p className="text-indigo-100 opacity-90 max-w-2xl leading-relaxed">این نما برای ایجاد درک مشترک بین تیم‌ها و پایش سریع فعالیت‌های کلیدی پلتفرم توسط مدیریت طراحی شده است. تغییرات ایجاد شده توسط تمامی مدیران در این پنل ابری به اشتراک گذاشته می‌شود.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-blue-600"><Headset className="text-lg"/> <span className="font-bold">پشتیبانی</span></div>
+                        <div className="text-sm text-slate-600">لاین‌های فعال تماس: <span className="font-bold text-slate-800">{data.support?.calls?.length || 0} لاین</span></div>
+                    </div>
+                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-purple-600"><PenTool className="text-lg"/> <span className="font-bold">محتوا و آموزش</span></div>
+                        <div className="text-sm text-slate-600">پروژه‌های پژوهشی: <span className="font-bold text-slate-800">{data.content?.research?.length || 0} سند</span></div>
+                    </div>
+                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-orange-500"><Megaphone className="text-lg"/> <span className="font-bold">مارکتینگ</span></div>
+                        <div className="text-sm text-slate-600">کمپین‌های فعال: <span className="font-bold text-slate-800">{data.marketing?.ads?.length || 0} کمپین</span></div>
+                    </div>
+                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-green-600"><Code2 className="text-lg"/> <span className="font-bold">محصول و فنی</span></div>
+                        <div className="text-sm text-slate-600">کمپین‌های فعال: <span className="font-bold text-slate-800">{data.product?.features?.filter(f => f.status === 'In Progress').length || 0} مورد</span></div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const SupportTab = ({ data, updateData }) => (
+            <div className="fade-in">
+                <DynamicTable 
+                    title="لاین‌های تماس فعال (تیم پشتیبانی)"
+                    icon={TrendingUp}
+                    data={data.calls || []}
+                    columns={[
+                        { key: 'name', label: 'عنوان لاین تماس' },
+                        { key: 'kpi', label: 'شاخص ارزیابی (KPI)' },
+                        { key: 'currentStats', label: 'آمار فعلی' },
+                        { key: 'phase', label: 'وضعیت لاین', isBadge: true },
+                        { key: 'challenges', label: 'چالش‌ها', type: 'textarea' },
+                        { key: 'analyses', label: 'تحلیل‌ها', type: 'textarea' }
+                    ]}
+                    onSave={(newData) => updateData('support', { ...data, calls: newData })}
+                />
+                <DynamicTable 
+                    title="پروژه‌های در جریان تیم پشتیبانی"
+                    icon={BookOpen}
+                    data={data.projects || []}
+                    columns={[
+                        { key: 'name', label: 'عنوان پروژه' },
+                        { key: 'progress', label: 'میزان پیشرفت' },
+                        { key: 'details', label: 'مشروحات پروژه', type: 'textarea' },
+                        { key: 'subtasks', label: 'ساب‌تسک‌ها و وضعیت', type: 'subtasks' }
+                    ]}
+                    onSave={(newData) => updateData('support', { ...data, projects: newData })}
+                />
+            </div>
+        );
+
+        const ContentTab = ({ data, updateData }) => (
+            <div className="fade-in space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <DynamicTable 
+                        title="بخش اول: مدیریت شبکه‌های اجتماعی"
+                        icon={Users}
+                        data={data.social || []}
+                        columns={[
+                            { key: 'name', label: 'نوع محتوا / لاین' },
+                            { key: 'metric', label: 'تارگت آمار تولید' }
+                        ]}
+                        onSave={(newData) => updateData('content', { ...data, social: newData })}
+                    />
+                    <DynamicTable 
+                        title="بخش دوم: محتوای پژوهشی (تعمیق مفاهیم)"
+                        icon={BookOpen}
+                        data={data.research || []}
+                        columns={[
+                            { key: 'name', label: 'عنوان سند/کتاب پژوهشی' },
+                            { key: 'phases', label: 'تشکیل و مدیریت فازها', type: 'phases' },
+                            { key: 'status', label: 'وضعیت کلی', isBadge: true }
+                        ]}
+                        onSave={(newData) => updateData('content', { ...data, research: newData })}
+                    />
+                </div>
+                <DynamicTable 
+                    title="بخش سوم: پاکار مدیا (تولیدات رسانه‌ای)"
+                    icon={Video}
+                    data={data.media || []}
+                    columns={[
+                        { key: 'name', label: 'عنوان پروژه ویدئویی/صوتی' },
+                        { key: 'subtasks', label: 'ساب‌تسک‌های رسانه‌ای', type: 'subtasks' }
+                    ]}
+                    onSave={(newData) => updateData('content', { ...data, media: newData })}
+                />
+                <DynamicTable 
+                    title="بخش چهارم: آموزش‌ها (رویدادها و وبینارها)"
+                    icon={Calendar}
+                    data={data.education || []}
+                    columns={[
+                        { key: 'title', label: 'عنوان رویداد آموزشی' },
+                        { key: 'date', label: 'تاریخ برگزاری' },
+                        { key: 'attendees', label: 'آمار ثبت‌نام / مشارکت' },
+                        { key: 'status', label: 'وضعیت رویداد', isBadge: true },
+                        { key: 'subtasks', label: 'ساب‌تسک‌های اجرایی رویداد', type: 'subtasks' }
+                    ]}
+                    onSave={(newData) => updateData('content', { ...data, education: newData })}
+                />
+            </div>
+        );
+
+        const MarketingTab = ({ data, updateData }) => (
+            <div className="fade-in grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DynamicTable 
+                    title="سند جامع مارکتینگ (فازبندی)"
+                    icon={BookOpen}
+                    data={data.marketingDoc || []}
+                    columns={[
+                        { key: 'phaseName', label: 'نام فاز توسعه' },
+                        { key: 'status', label: 'وضعیت فاز', isBadge: true }
+                    ]}
+                    onSave={(newData) => updateData('marketing', { ...data, marketingDoc: newData })}
+                />
+                <DynamicTable 
+                    title="پرفورمنس و تبلیغات"
+                    icon={TrendingUp}
+                    data={data.ads || []}
+                    columns={[
+                        { key: 'platform', label: 'پلتفرم تبلیغاتی' },
+                        { key: 'budget', label: 'بودجه هفتگی' },
+                        { key: 'result', label: 'خروجی / نتایج کسب شده' }
+                    ]}
+                    onSave={(newData) => updateData('marketing', { ...data, ads: newData })}
+                />
+            </div>
+        );
+
+        const PrTab = ({ data, updateData }) => (
+            <div className="fade-in">
+                <DynamicTable 
+                    title="منظومه سازمان‌ها و همکاران تجاری (PR)"
+                    icon={Users}
+                    data={data.partners || []}
+                    columns={[
+                        { key: 'name', label: 'نام سازمان' },
+                        { key: 'type', label: 'نوع همکاری' },
+                        { key: 'phase', label: 'فاز فعلی ارتباطات', isBadge: true }
+                    ]}
+                    onSave={(newData) => updateData('pr', { ...data, partners: newData })}
+                />
+                <DynamicTable 
+                    title="پروژه‌های زیرساختی و تجاری روابط عمومی"
+                    icon={BookOpen}
+                    data={data.projects || []}
+                    columns={[
+                        { key: 'name', label: 'عنوان پروژه زیرساخت' },
+                        { key: 'status', label: 'وضعیت نهایی توسعه' }
+                    ]}
+                    onSave={(newData) => updateData('pr', { ...data, projects: newData })}
+                />
+            </div>
+        );
+
+        const ProductTab = ({ data, updateData }) => (
+            <div className="fade-in">
+                <DynamicTable 
+                    title="نقشه راه و اطلاعیه‌های فنی محصول"
+                    icon={Play}
+                    data={data.features || []}
+                    columns={[
+                        { key: 'name', label: 'نام فیچر / قابلیت توسعه' },
+                        { key: 'desc', label: 'خلاصه فیچر', type: 'textarea' },
+                        { key: 'sprint', label: 'اسپرینت توسعه' },
+                        { key: 'endDate', label: 'زمان اتمام تخمینی' },
+                        { key: 'status', label: 'وضعیت', type: 'datalist', options: ['To Do', 'In Progress', 'Blocked', 'Done'], isBadge: true }
+                    ]}
+                    onSave={(newData) => updateData('product', { ...data, features: newData })}
+                />
+            </div>
+        );
+
+        // --- بدنه اصلی برنامه ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [data, setData] = useState(initialData);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [isSaving, setIsSaving] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+            const [notification, setNotification] = useState("");
+
+            // خواندن داده‌ها از دیتابیس ابری گوگل شیت در لحظه ورود
+            useEffect(() => {
+                if (GOOGLE_SCRIPT_URL !== "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
+                    setIsLoading(true);
+                    fetch(GOOGLE_SCRIPT_URL)
+                        .then(res => res.json())
+                        .then(result => {
+                            if (result && result.support) {
+                                setData(result);
+                                showNotification("داده‌ها با موفقیت از ابر گوگل شیت همگام‌سازی شدند ✅");
+                            } else {
+                                showNotification("داده‌ی ابری پیدا نشد. از اطلاعات پیش‌فرض استفاده می‌کنید.");
+                            }
+                            setIsLoading(false);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            showNotification("خطا در برقراری ارتباط با گوگل شیت! ❌");
+                            setIsLoading(false);
+                        });
+                } else {
+                    // در صورت ذخیره لوکال
+                    const localSaved = localStorage.getItem("pakar_offline_data");
+                    if (localSaved) {
+                        try {
+                            setData(JSON.parse(localSaved));
+                        } catch(e) {}
+                    }
+                }
+            }, []);
+
+            const showNotification = (msg) => {
+                setNotification(msg);
+                setTimeout(() => setNotification(""), 4500);
+            };
+
+            const updateData = (teamKey, newData) => {
+                const updated = { ...data, [teamKey]: newData };
+                setData(updated);
+                if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
+                    localStorage.setItem("pakar_offline_data", JSON.stringify(updated));
+                }
+            };
+
+            // ذخیره نهایی کل داده‌ها در ابر با دکمه سابمیت ابری
+            const saveAllToCloud = () => {
+                if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
+                    showNotification("ابتدا باید وب‌اپلیکیشن گوگل خود را راه اندازی کنید! ⚠️");
+                    return;
+                }
+                setIsSaving(true);
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // برای ممانعت از خطای CORS مرورگر
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(() => {
+                    showNotification("تغییرات با موفقیت روی ابر ثبت شد. اکنون بقیه مدیران هم این نسخه را خواهند دید! ☁️");
+                    setIsSaving(false);
+                })
+                .catch(err => {
+                    console.error(err);
+                    showNotification("ذخیره با خطا مواجه شد ❌");
+                    setIsSaving(false);
+                });
+            };
+
+            const navItems = [
+                { id: 'overview', label: 'نمای کلی پاکار', icon: LayoutDashboard },
+                { id: 'support', label: 'تیم پشتیبانی', icon: Headset },
+                { id: 'content', label: 'تیم محتوا و پژوهش', icon: PenTool },
+                { id: 'marketing', label: 'تیم مارکتینگ', icon: Megaphone },
+                { id: 'pr', label: 'توسعه همکاری‌ها', icon: Handshake },
+                { id: 'product', label: 'تیم محصول', icon: Code2 },
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row text-slate-900">
+                    
+                    {/* هدر موبایل */}
+                    <div className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">پ</div>
+                            <h1 className="font-bold text-slate-800">داشبورد پاکار</h1>
+                        </div>
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-600 text-xl p-2">
+                            <i className={`fa-solid ${isSidebarOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
+                        </button>
+                    </div>
+
+                    {/* STREAMING_CHUNK: Designing the sidebar navigation layout -->
+                    {/* سایدبار */}
+                    <aside className={`fixed md:static inset-y-0 right-0 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-white border-l border-gray-200 flex-shrink-0 shadow-lg md:shadow-sm z-30 flex flex-col`}>
+                        <div className="hidden md:flex p-6 border-b border-gray-100 items-center gap-3">
+                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md">پ</div>
+                            <div>
+                                <h1 className="font-bold text-lg text-slate-800 tracking-tight">داشبورد پاکار</h1>
+                                <p className="text-xs text-slate-500">کنترل پروژه ابری</p>
+                            </div>
+                        </div>
+                        
+                        <nav className="p-4 flex-1 space-y-1 overflow-y-auto">
+                        {navItems.map(item => {
+                            const isActive = activeTab === item.id;
+                            const Icon = item.icon;
+                            return (
+                            <button
+                                key={item.id}
+                                onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium
+                                ${isActive 
+                                    ? 'bg-indigo-50 text-indigo-700 shadow-sm' 
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+                            >
+                                <Icon className={`w-5 h-5 flex items-center justify-center text-lg ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                {item.label}
+                            </button>
+                            )
+                        })}
+                        </nav>
+
+                        <div className="p-4 border-t border-gray-100 bg-slate-50 space-y-3">
+                            {/* دکمه ذخیره کلود */}
+                            <button 
+                                onClick={saveAllToCloud}
+                                disabled={isSaving}
+                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                <SaveIcon />
+                                {isSaving ? "در حال ثبت ابری..." : "ارسال نسخه نهایی به ابر"}
+                            </button>
+                            <div className="text-[10px] text-center text-slate-400">
+                                نسخه ۱.۸ پایدار
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* STREAMING_CHUNK: Designing main dashboard layout wrapper -->
+                    {/* محتوای اصلی */}
+                    <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto h-screen bg-slate-50">
+                        {isSidebarOpen && (
+                            <div className="fixed inset-0 bg-slate-900/50 z-20 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+                        )}
+
+                        <div className="max-w-6xl mx-auto pb-20">
+                            
+                            {notification && (
+                                <div className="fixed top-4 left-4 right-4 sm:left-auto sm:w-96 bg-slate-900 text-white text-xs p-3 rounded-xl shadow-xl z-50 flex items-center gap-2 fade-in">
+                                    <i className="fa-solid fa-bell text-yellow-400"></i>
+                                    <span>{notification}</span>
+                                </div>
+                            )}
+
+                            {isLoading && (
+                                <div className="fixed inset-0 bg-white/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-2">
+                                    <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-xs font-bold text-slate-700">در حال دریافت جدیدترین داده‌ها از گوگل کلود...</span>
+                                </div>
+                            )}
+
+                            {/* هدر */}
+                            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800">
+                                        {navItems.find(i => i.id === activeTab)?.label}
+                                    </h2>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        {GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL" 
+                                            ? "حالت آفلاین (ذخیره در مرورگر)" 
+                                            : "متصل به سیستم ابری گوگل پاکار"}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-medium border border-indigo-100">
+                                        جلسه شوری مدیران
+                                    </div>
+                                </div>
+                            </header>
+
+                            {/* رندر تب‌ها */}
+                            {activeTab === 'overview' && <OverviewTab data={data} />}
+                            {activeTab === 'support' && <SupportTab data={data.support || {}} updateData={updateData} />}
+                            {activeTab === 'content' && <ContentTab data={data.content || {}} updateData={updateData} />}
+                            {activeTab === 'marketing' && <MarketingTab data={data.marketing || {}} updateData={updateData} />}
+                            {activeTab === 'pr' && <PrTab data={data.pr || {}} updateData={updateData} />}
+                            {activeTab === 'product' && <ProductTab data={data.product || {}} updateData={updateData} />}
+
+                        </div>
+                    </main>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
