@@ -267,8 +267,18 @@
                                         {/* Performance (Rate or Progress) */}
                                         <td className="py-3 px-4">
                                             {isEditing ? (
-                                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                                    <input type="number" min="0" max="100" value={isProject ? (row.progress||0) : (row.performance||0)} onChange={e=>handleChange(row.id, isProject?'progress':'performance', e.target.value)} className="w-16 p-1.5 rounded text-center" /> %
+                                                <div className="flex flex-col justify-center min-w-[120px]">
+                                                    <div className="flex items-center gap-2">
+                                                        <input 
+                                                            type="range" 
+                                                            min="0" 
+                                                            max="100" 
+                                                            value={isProject ? (row.progress||0) : (row.performance||0)} 
+                                                            onChange={e=>handleChange(row.id, isProject?'progress':'performance', e.target.value)} 
+                                                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all" 
+                                                        />
+                                                        <span className="text-xs font-bold text-slate-300 w-8">{isProject ? (row.progress||0) : (row.performance||0)}%</span>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 isProject ? <ProgressBar percent={row.progress} /> : <PerformanceDot percent={row.performance} />
