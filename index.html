@@ -380,101 +380,6 @@
             </div>
         );
 
-        const MindMapSection = ({ data, settings }) => {
-            const getTitle = (key, def) => settings?.titles?.[key] || def;
-
-            const TeamBranch = ({ team, data, side, top }) => {
-                const items = [...(data?.lines||[]), ...(data?.projects||[])].slice(0, 5); // محدودیت نمایش برای فشردگی
-                const isLeft = side === 'left';
-                
-                // تغییر عرض از 42% به 40% برای ایجاد حاشیه امن در صفحه لپ‌تاپ
-                return (
-                    <div className={`absolute flex items-center ${isLeft ? 'justify-end' : 'justify-start'} z-10 hover:z-20 transition-all`} 
-                         style={{ top: top, [isLeft ? 'right' : 'left']: '55%', width: '40%', transform: 'translateY(-50%)' }}>
-                        
-                        {isLeft && (
-                            <>
-                                <div className="flex flex-col items-end gap-1.5 pr-2 relative border-r-2 border-slate-400 dark:border-slate-500/50 mr-1.5 w-full">
-                                     {items.map((item, i) => (
-                                         <div key={i} className="flex items-center relative pr-2 w-full justify-end">
-                                             <div className="absolute right-0 w-2 h-px bg-slate-400 dark:bg-slate-500/50"></div>
-                                             <div className="text-[9px] px-1.5 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-sm whitespace-nowrap text-right max-w-[120px] md:max-w-[140px] truncate text-slate-700 dark:text-slate-300" dir="rtl">{item.name || 'بدون نام'}</div>
-                                         </div>
-                                     ))}
-                                     {items.length === 0 && <div className="text-[9px] text-slate-400 pr-2">خالی</div>}
-                                </div>
-                                <div className="w-3 h-px bg-slate-400 dark:bg-slate-500/50 flex-shrink-0"></div>
-                            </>
-                        )}
-
-                        <div className="bg-slate-100 dark:bg-slate-800 border border-blue-400 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 px-2 py-1.5 rounded-lg text-[10px] md:text-xs font-bold whitespace-nowrap shadow-md cursor-default transform hover:scale-105 transition-transform z-10 flex-shrink-0" dir="rtl">
-                           <i className={`fa-solid ${team.icon} ml-1`}></i> {team.name}
-                        </div>
-
-                        {!isLeft && (
-                            <>
-                                <div className="w-3 h-px bg-slate-400 dark:bg-slate-500/50 flex-shrink-0"></div>
-                                <div className="flex flex-col items-start gap-1.5 pl-2 relative border-l-2 border-slate-400 dark:border-slate-500/50 ml-1.5 w-full">
-                                     {items.map((item, i) => (
-                                         <div key={i} className="flex items-center relative pl-2 w-full justify-start">
-                                             <div className="absolute left-0 w-2 h-px bg-slate-400 dark:bg-slate-500/50"></div>
-                                             <div className="text-[9px] px-1.5 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-sm whitespace-nowrap text-right max-w-[120px] md:max-w-[140px] truncate text-slate-700 dark:text-slate-300" dir="rtl">{item.name || 'بدون نام'}</div>
-                                         </div>
-                                     ))}
-                                     {items.length === 0 && <div className="text-[9px] text-slate-400 pl-2">خالی</div>}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )
-            };
-
-            return (
-                <div id="section-mindmap" className="pt-8 pb-12 border-b border-slate-200 dark:border-slate-800/80 scroll-mt-20 fade-in">
-                    <div className="mb-6 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shadow-sm">
-                            <i className="fa-solid fa-sitemap"></i>
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-black text-dynamic-title tracking-tight">پاکار در یک نگاه (نقشه سازمانی)</h2>
-                            <p className="text-slate-500 text-xs mt-1 font-medium">نمای ۳۶۰ درجه و فشرده از اتصال تیم‌ها و پروژه‌ها</p>
-                        </div>
-                    </div>
-
-                    {/* افزودن لایه محافظ برای جلوگیری از جمع شدن نقشه در مانیتورهای کوچک */}
-                    <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 w-full overflow-x-auto shadow-inner" dir="ltr">
-                        <div className="min-w-[900px] min-h-[500px] md:min-h-[550px] relative w-full h-full">
-                            
-                            {/* خطوط اتصال ستاره‌ای */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                                <path d="M 50% 50% C 45% 50%, 48% 20%, 45% 20%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
-                                <path d="M 50% 50% L 45% 50%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
-                                <path d="M 50% 50% C 45% 50%, 48% 80%, 45% 80%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
-                                
-                                <path d="M 50% 50% C 55% 50%, 52% 30%, 55% 30%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
-                                <path d="M 50% 50% C 55% 50%, 52% 70%, 55% 70%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
-                            </svg>
-
-                            {/* هسته مرکزی */}
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center font-black text-white shadow-[0_0_20px_rgba(59,130,246,0.6)] border-4 border-white dark:border-slate-950 text-lg md:text-xl transform hover:scale-105 transition-transform cursor-pointer">
-                                    پاکار
-                                </div>
-                            </div>
-
-                            {/* شاخه‌های تیم‌ها */}
-                            <TeamBranch team={{ name: getTitle('team_marketing', 'مارکتینگ'), icon: 'fa-bullhorn' }} data={data.marketing} side="left" top="20%" />
-                            <TeamBranch team={{ name: getTitle('team_pr', 'همکاری‌ها'), icon: 'fa-handshake' }} data={data.pr} side="left" top="50%" />
-                            <TeamBranch team={{ name: getTitle('team_product', 'محصول و فنی'), icon: 'fa-code' }} data={data.product} side="left" top="80%" />
-                            
-                            <TeamBranch team={{ name: getTitle('team_support', 'پشتیبانی'), icon: 'fa-headset' }} data={data.support} side="right" top="30%" />
-                            <TeamBranch team={{ name: getTitle('team_content', 'محتوا و پژوهش'), icon: 'fa-pen-nib' }} data={data.content} side="right" top="70%" />
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         function App() {
             const [data, setData] = useState(initialData);
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -505,7 +410,7 @@
 
             useEffect(() => {
                 const handleScroll = () => {
-                    const sections = ['overview', 'mindmap', 'support', 'content', 'marketing', 'pr', 'product'];
+                    const sections = ['overview', 'support', 'content', 'marketing', 'pr', 'product'];
                     let current = 'overview';
                     for (const sec of sections) {
                         const el = document.getElementById(`section-${sec}`);
@@ -557,7 +462,6 @@
                         <nav className="p-4 flex-1 space-y-1.5 overflow-y-auto">
                             {[
                                 { id: 'overview', label: 'چشم‌انداز مدیرعامل', icon: 'fa-solid fa-crosshairs' },
-                                { id: 'mindmap', label: 'پاکار در یک نگاه', icon: 'fa-solid fa-sitemap' },
                                 { id: 'support', label: data.settings?.titles?.team_support || 'تیم پشتیبانی', icon: 'fa-solid fa-headset' },
                                 { id: 'content', label: data.settings?.titles?.team_content || 'محتوا و پژوهش', icon: 'fa-solid fa-pen-nib' },
                                 { id: 'marketing', label: data.settings?.titles?.team_marketing || 'مارکتینگ و رشد', icon: 'fa-solid fa-bullhorn' },
@@ -608,8 +512,6 @@
                                     <p className="text-blue-100 max-w-2xl leading-relaxed text-sm md:text-base font-medium relative z-10 border-r-4 border-blue-400 pr-4">این داشبورد بر اساس معماری استاندارد (لاین‌های کاری + پروژه‌های توسعه‌ای) طراحی شده است تا جلسات شوری مدیران با بالاترین بازدهی ذهنی برگزار شود.</p>
                                 </div>
                             </div>
-
-                            <MindMapSection data={data} settings={data.settings} />
 
                             <DepartmentView teamKey="support" iconClass="fa-solid fa-headset" data={data.support} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
                             <DepartmentView teamKey="content" iconClass="fa-solid fa-pen-nib" data={data.content} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
