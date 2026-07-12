@@ -26,23 +26,33 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { background-color: #020617; color: #f8fafc; margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; transition: background-color 0.3s, color 0.3s; overflow-x: hidden; }
+        
+        /* حالت روشن (پیش فرض) */
+        body { background-color: #f8fafc; color: #1e293b; }
+        .bg-dynamic-card { background-color: #ffffff; border-color: #e2e8f0; }
+        .bg-dynamic-header { background-color: #f1f5f9; border-color: #e2e8f0; }
+        .text-dynamic-title { color: #0f172a; }
+        .input-dynamic { background-color: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; }
+        .input-dynamic:focus { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; outline: none; }
+        .table-row-hover:hover { background-color: #f1f5f9; }
+        
+        /* حالت تاریک */
+        html.dark body { background-color: #020617; color: #f8fafc; }
+        html.dark .bg-dynamic-card { background-color: #0f172a; border-color: #1e293b; }
+        html.dark .bg-dynamic-header { background-color: #1e293b; border-color: #334155; }
+        html.dark .text-dynamic-title { color: #f1f5f9; }
+        html.dark .input-dynamic { background-color: #1e293b; border: 1px solid #334155; color: #f1f5f9; }
+        html.dark .table-row-hover:hover { background-color: #1e293b; }
+
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        input, textarea, select { background-color: #1e293b; color: #f1f5f9; border-color: #334155; }
-        input:focus, textarea:focus, select:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 1px #3b82f6; }
-        
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        html.dark ::-webkit-scrollbar-thumb { background: #334155; }
         
         html { scroll-behavior: smooth; }
     </style>
@@ -51,105 +61,102 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
         // --- لینک ابری گوگل شیت اختصاصی شما ---
-        // اگر بعد از اجرای مراحل بالا لینک جدیدی گرفتید، آن را جایگزین لینک زیر کنید:
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMkx_WdDRFimencpg5-Ou7GzmUjI0wiAfgajnK-u8w7aq2ujQZwd0BNnoUi1QF7xv9Ow/exec";
 
-        // --- داده‌های اولیه استاندارد ---
         const initialData = {
-            settings: { statuses: ['جاری', 'آزمایشی', 'تکمیل شده', 'متوقف', 'عقب‌افتاده', 'در صف بررسی'] },
-            support: {
-                lines: [
-                    { id: 1, name: 'رد و تایید فرصت ها', owner: 'علی', target: '۱۲۰ مورد/هفته', current: '۱۱۵ مورد', performance: 95, status: 'جاری', challenges: 'حجم بالا در ایام تعطیل' },
-                    { id: 2, name: 'احراز هویت مالی', owner: 'سارا', target: '۴۵ مورد/هفته', current: '۴۰ مورد', performance: 88, status: 'جاری', challenges: 'کندی در آپلود مدارک' }
-                ],
-                projects: [
-                    { id: 1, name: 'تهیه هدیه های لیگ فصلی', owner: 'رضا', progress: 80, subtasks: [{title: 'سفارش هدایا', status: 'انجام شده'}, {title: 'ارسال', status: 'آغاز نشده'}], status: 'جاری', challenges: 'هماهنگی با پیک' }
-                ]
+            settings: { 
+                statuses: ['جاری', 'آزمایشی', 'تکمیل شده', 'متوقف', 'عقب‌افتاده', 'در صف بررسی'],
+                titles: {
+                    mainHeader: 'یکپارچگی در نگاه اول',
+                    team_support: 'تیم پشتیبانی کاربران',
+                    team_content: 'تیم محتوا و پژوهش',
+                    team_marketing: 'تیم مارکتینگ و رشد',
+                    team_pr: 'دفتر توسعه همکاری‌ها (PR)',
+                    team_product: 'تیم محصول و فنی',
+                    col_line_name: 'عنوان لاین کاری',
+                    col_proj_name: 'عنوان پروژه',
+                    col_target: 'تارگت / شاخص',
+                    col_current: 'آمار فعلی',
+                    col_final: 'مقدار نهایی',
+                    col_resolutions: 'مصوبات و تاریخ'
+                }
             },
-            content: {
-                lines: [
-                    { id: 1, name: 'پست های اینستاگرام', owner: 'زهرا', target: '۴ پست', current: '۳ پست', performance: 75, status: 'عقب‌افتاده', challenges: 'کمبود گرافیک' }
-                ],
-                projects: [
-                    { id: 1, name: 'سند مفاهیم کار داوطلبانه', owner: 'محمد', progress: 50, subtasks: [{title: 'فاز ۱', status: 'انجام شده'}, {title: 'فاز ۲', status: 'در حال انجام'}], status: 'جاری', challenges: 'نیاز به ترجمه' }
-                ]
-            },
-            marketing: {
-                lines: [
-                    { id: 1, name: 'تبلیغات کافه بازار', owner: 'امیر', target: '۵۰۰ نصب', current: '۴۵۰ نصب', performance: 90, status: 'جاری', challenges: '' }
-                ],
-                projects: [
-                    { id: 1, name: 'تدوین سند استراتژی رشد', owner: 'تیم مارکتینگ', progress: 30, subtasks: [{title: 'تحقیقات بازار', status: 'انجام شده'}], status: 'جاری', challenges: '' }
-                ]
-            },
-            pr: {
-                lines: [
-                    { id: 1, name: 'تماس با سازمان‌های همکار', owner: 'حسین', target: '۱۰ سازمان', current: '۵ سازمان', performance: 50, status: 'جاری', challenges: 'عدم پاسخگویی' }
-                ],
-                projects: [
-                    { id: 1, name: 'عقد تفاهم‌نامه همراه اول', owner: 'مدیریت', progress: 90, subtasks: [], status: 'در صف بررسی', challenges: 'بروکراسی اداری' }
-                ]
-            },
-            product: {
-                lines: [
-                    { id: 1, name: 'رفع باگ‌های گزارش شده', owner: 'تیم فنی', target: '۲۰ باگ', current: '۱۸ باگ', performance: 90, status: 'جاری', challenges: '' }
-                ],
-                projects: [
-                    { id: 1, name: 'بازطراحی پروفایل کاربری', owner: 'UI/UX', progress: 60, subtasks: [{title: 'وایرفریم', status: 'انجام شده'}, {title: 'پیاده‌سازی', status: 'در حال انجام'}], status: 'جاری', challenges: '' }
-                ]
-            }
+            support: { lines: [], projects: [] },
+            content: { lines: [], projects: [] },
+            marketing: { lines: [], projects: [] },
+            pr: { lines: [], projects: [] },
+            product: { lines: [], projects: [] }
         };
 
-        // --- ابزارهای کمکی ---
+        // تابع هوشمند برای استخراج عدد از رشته (حتی شامل حروف و اعداد فارسی)
+        const extractNumber = (str) => {
+            if (typeof str === 'number') return str;
+            if (!str) return 0;
+            const persianToEnglish = s => s.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+            const englishStr = persianToEnglish(String(str));
+            const match = englishStr.match(/-?\d+(\.\d+)?/);
+            return match ? parseFloat(match[0]) : 0;
+        };
+
         const ProgressBar = ({ percent }) => {
             const p = Math.min(100, Math.max(0, Number(percent) || 0));
-            const color = p >= 80 ? 'bg-green-500' : p >= 50 ? 'bg-blue-500' : 'bg-orange-500';
+            const color = p >= 80 ? 'bg-emerald-500' : p >= 40 ? 'bg-blue-500' : 'bg-orange-500';
             return (
                 <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${p}%` }}></div>
+                    <div className="flex-1 h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700">
+                        <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${p}%` }}></div>
                     </div>
-                    <span className="text-xs font-bold text-slate-300 w-8">{p}%</span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 w-9">{p.toFixed(0)}%</span>
                 </div>
             );
         };
 
-        // --- کامپوننت‌های ویرایشگر محلی و داینامیک ---
+        const EditableTitle = ({ titleKey, defaultTitle, isEditingTitles, settings, updateSettings, className }) => {
+            const currentTitle = settings?.titles?.[titleKey] || defaultTitle;
+            if (isEditingTitles) {
+                return (
+                    <input 
+                        type="text" 
+                        value={currentTitle} 
+                        onChange={e => updateSettings('titles', { ...(settings.titles || {}), [titleKey]: e.target.value })} 
+                        className={`bg-white dark:bg-slate-800 border-2 border-blue-400 text-blue-600 dark:text-blue-300 rounded px-2 py-0.5 outline-none font-bold w-full max-w-xs ${className}`} 
+                    />
+                );
+            }
+            return <span className={className}>{currentTitle}</span>;
+        };
+
         const StatusManager = ({ statuses = [], onUpdate }) => {
-            const safeStatuses = Array.isArray(statuses) ? statuses : []; // کنترل خطای فرمت داده
             const [isOpen, setIsOpen] = useState(false);
-            const [localStatuses, setLocalStatuses] = useState([...safeStatuses]);
+            const [localStatuses, setLocalStatuses] = useState([...statuses]);
             const [newStatus, setNewStatus] = useState('');
-
-            // بروزرسانی استیت محلی وقتی که تنظیمات خارجی تغییر میکنند
-            useEffect(() => { setLocalStatuses(Array.isArray(statuses) ? [...statuses] : []); }, [statuses]);
-
+            useEffect(() => { setLocalStatuses([...statuses]); }, [statuses]);
             const handleAdd = () => { if(newStatus.trim() && !localStatuses.includes(newStatus)) { setLocalStatuses([...localStatuses, newStatus.trim()]); setNewStatus(''); }};
             const handleRemove = (s) => setLocalStatuses(localStatuses.filter(x => x !== s));
             const handleSave = () => { onUpdate(localStatuses); setIsOpen(false); };
 
             return (
                 <div className="relative inline-block ml-1">
-                    <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-blue-400 p-1" title="مدیریت وضعیت‌ها"><i className="fa-solid fa-gear text-xs"></i></button>
+                    <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-blue-500 p-1"><i className="fa-solid fa-gear text-xs"></i></button>
                     {isOpen && (
-                        <div className="absolute right-0 top-6 w-48 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-3 z-50">
-                            <div className="text-[10px] text-slate-400 mb-2 font-bold">لیست وضعیت‌های مجاز:</div>
-                            <div className="space-y-1 mb-3 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="absolute right-0 top-6 w-48 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl p-3 z-50">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 font-bold">مدیریت وضعیت‌ها:</div>
+                            <div className="space-y-1 mb-3 max-h-32 overflow-y-auto pr-1">
                                 {localStatuses.map(s => (
-                                    <div key={s} className="flex justify-between items-center text-xs bg-slate-900 px-2 py-1 rounded">
-                                        <span className="text-slate-300">{s}</span>
-                                        <button onClick={() => handleRemove(s)} className="text-red-400 hover:text-red-300"><i className="fa-solid fa-xmark"></i></button>
+                                    <div key={s} className="flex justify-between items-center text-xs bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
+                                        <span className="text-slate-700 dark:text-slate-300">{s}</span>
+                                        <button onClick={() => handleRemove(s)} className="text-red-500 hover:text-red-700"><i className="fa-solid fa-xmark"></i></button>
                                     </div>
                                 ))}
                             </div>
                             <div className="flex gap-1 mb-2">
-                                <input type="text" value={newStatus} onChange={e=>setNewStatus(e.target.value)} placeholder="وضعیت جدید" className="w-full text-xs p-1 rounded bg-slate-950 border border-slate-700" />
-                                <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-500 text-white px-2 rounded"><i className="fa-solid fa-plus text-[10px]"></i></button>
+                                <input type="text" value={newStatus} onChange={e=>setNewStatus(e.target.value)} placeholder="وضعیت جدید" className="input-dynamic w-full text-xs p-1 rounded" />
+                                <button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700 text-white px-2 rounded"><i className="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
-                            <button onClick={handleSave} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-1 rounded font-bold">ذخیره تنظیمات</button>
+                            <button onClick={handleSave} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs py-1.5 rounded font-bold">ذخیره لیست</button>
                         </div>
                     )}
                 </div>
@@ -157,149 +164,187 @@
         };
 
         const SubtaskEditor = ({ value = [], onChange }) => {
-            const safeValue = Array.isArray(value) ? value : []; // پیشگیری از خطای مپ روی دیتای قدیمی
-            
-            const addSubtask = () => onChange([...safeValue, { title: '', status: 'آغاز نشده' }]);
-            const updateSubtask = (idx, key, val) => { const newV = [...safeValue]; newV[idx][key] = val; onChange(newV); };
-            const removeSubtask = (idx) => onChange(safeValue.filter((_, i) => i !== idx));
-
+            const addSubtask = () => onChange([...(value||[]), { title: '', status: 'آغاز نشده' }]);
+            const updateSubtask = (idx, key, val) => { const newV = [...(value||[])]; newV[idx][key] = val; onChange(newV); };
+            const removeSubtask = (idx) => onChange((value||[]).filter((_, i) => i !== idx));
             return (
-                <div className="space-y-2 min-w-[200px] p-2 bg-slate-900 rounded-lg border border-slate-700">
-                    {safeValue.map((st, i) => (
+                <div className="space-y-2 min-w-[220px] p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                    {(value||[]).map((st, i) => (
                         <div key={i} className="flex gap-1 items-center">
-                            <input type="text" value={st.title || ''} onChange={e => updateSubtask(i, 'title', e.target.value)} placeholder="عنوان ساب‌تسک/مایلستون" className="w-full text-xs p-1 rounded bg-slate-950 border border-slate-700" />
-                            <select value={st.status || 'آغاز نشده'} onChange={e => updateSubtask(i, 'status', e.target.value)} className="w-24 text-xs p-1 rounded bg-slate-950 border border-slate-700">
+                            <input type="text" value={st.title} onChange={e => updateSubtask(i, 'title', e.target.value)} placeholder="مایلستون..." className="input-dynamic w-full text-xs p-1 rounded" />
+                            <select value={st.status} onChange={e => updateSubtask(i, 'status', e.target.value)} className="input-dynamic w-24 text-xs p-1 rounded">
                                 <option>آغاز نشده</option><option>در حال انجام</option><option>انجام شده</option><option>متوقف</option>
                             </select>
-                            <button onClick={() => removeSubtask(i)} className="text-red-400 hover:text-red-300 px-1"><i className="fa-solid fa-trash text-xs"></i></button>
+                            <button onClick={() => removeSubtask(i)} className="text-red-400 hover:text-red-600 px-1"><i className="fa-solid fa-trash text-xs"></i></button>
                         </div>
                     ))}
-                    <button onClick={addSubtask} className="text-[11px] text-blue-400 font-bold hover:text-blue-300"><i className="fa-solid fa-plus"></i> افزودن مایلستون</button>
+                    <button onClick={addSubtask} className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline"><i className="fa-solid fa-plus"></i> مایلستون جدید</button>
                 </div>
             );
         };
 
-        // --- بخش استاندارد (جدول جامع لاین/پروژه) ---
-        const StandardSection = ({ type, title, iconClass, data = [], settings, onUpdateSettings, onSaveData }) => {
+        const StandardSection = ({ type, title, iconClass, data = [], settings, onUpdateSettings, onSaveData, isEditingTitles }) => {
             const [isEditing, setIsEditing] = useState(false);
-            const safeData = Array.isArray(data) ? data : [];
-            const [localData, setLocalData] = useState([...safeData]);
-            
-            useEffect(() => setLocalData(Array.isArray(data) ? [...data] : []), [data]);
+            const [localData, setLocalData] = useState([...(data||[])]);
+            useEffect(() => setLocalData([...(data||[])]), [data]);
 
             const isProject = type === 'project';
-            const rawStatuses = settings?.statuses;
-            const availableStatuses = Array.isArray(rawStatuses) ? rawStatuses : ['جاری', 'متوقف'];
+            const availableStatuses = settings?.statuses || ['جاری', 'متوقف'];
 
-            const handleAdd = () => setLocalData([...localData, { id: Date.now() + Math.random(), name: '', owner: '', status: availableStatuses[0] || '', challenges: '', ...(isProject ? {progress: 0, subtasks: []} : {target: '', current: '', performance: 0}) }]);
+            // محاسبه مجموع آمار فعلی برای فرمول اتوماتیک نوار پیشرفت لاین ها
+            const totalCurrentStats = !isProject ? localData.reduce((acc, row) => acc + extractNumber(row.current), 0) : 0;
+
+            const handleAdd = () => setLocalData([...localData, { id: Date.now(), name: '', owner: '', status: availableStatuses[0], challenges: '', resolutionText: '', resolutionDate: '', ...(isProject ? {progress: 0, subtasks: []} : {target: '', current: '', finalValue: ''}) }]);
             const handleRemove = (id) => setLocalData(localData.filter(item => item.id !== id));
             const handleChange = (id, key, value) => setLocalData(localData.map(item => item.id === id ? { ...item, [key]: value } : item));
             const handleSubmit = () => { onSaveData(localData); setIsEditing(false); };
 
             return (
-                <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden mb-6 shadow-lg">
-                    <div className="bg-slate-800/80 border-b border-slate-700/50 p-4 flex justify-between items-center">
-                        <h3 className="font-bold text-slate-100 flex items-center gap-2 text-sm md:text-base">
+                <div className="bg-dynamic-card rounded-xl border overflow-hidden mb-6 shadow-sm">
+                    <div className="bg-dynamic-header border-b p-4 flex justify-between items-center">
+                        <h3 className="font-bold text-dynamic-title flex items-center gap-2 text-sm md:text-base">
                             <i className={`${iconClass} text-blue-500`}></i> {title}
                         </h3>
                         {!isEditing ? (
-                            <button onClick={() => setIsEditing(true)} className="text-xs flex items-center gap-1.5 text-slate-400 hover:text-blue-400 transition-colors bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-blue-500/50">
+                            <button onClick={() => setIsEditing(true)} className="text-xs flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-colors">
                                 <i className="fa-solid fa-pen text-[10px]"></i> ویرایش جدول
                             </button>
                         ) : (
-                            <button onClick={handleSubmit} className="text-xs flex items-center gap-1.5 bg-emerald-600/90 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                                <i className="fa-solid fa-check text-[10px]"></i> اعمال موقت تغییرات
+                            <button onClick={handleSubmit} className="text-xs flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-600 shadow-md transition-colors">
+                                <i className="fa-solid fa-check text-[10px]"></i> اعمال تغییرات
                             </button>
                         )}
                     </div>
                 
-                    <div className="p-0 overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-right text-sm whitespace-nowrap min-w-[800px]">
+                    <div className="p-0 overflow-x-auto">
+                        <table className="w-full text-right text-sm whitespace-nowrap min-w-[1000px]">
                             <thead>
-                                <tr className="text-slate-400 text-xs bg-slate-950/30">
-                                    <th className="py-3 px-4 font-medium">عنوان {isProject ? 'پروژه' : 'لاین کاری'}</th>
-                                    <th className="py-3 px-4 font-medium w-24">مسئول (Owner)</th>
-                                    {!isProject && <th className="py-3 px-4 font-medium w-32">تارگت / شاخص</th>}
-                                    {!isProject && <th className="py-3 px-4 font-medium w-32">آمار فعلی</th>}
-                                    {isProject && <th className="py-3 px-4 font-medium w-64">مایلستون‌ها / ساب‌تسک‌ها</th>}
-                                    <th className="py-3 px-4 font-medium w-32">پرفورمنس / پیشرفت</th>
-                                    <th className="py-3 px-4 font-medium w-32">
-                                        وضعیت 
-                                        {isEditing && <StatusManager statuses={availableStatuses} onUpdate={s => onUpdateSettings('statuses', s)} />}
+                                <tr className="text-slate-500 dark:text-slate-400 text-xs bg-slate-50 dark:bg-slate-900/50">
+                                    <th className="py-3 px-3 font-medium min-w-[180px]"><EditableTitle titleKey={isProject?'col_proj_name':'col_line_name'} defaultTitle={isProject ? 'عنوان پروژه' : 'عنوان لاین کاری'} isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>
+                                    <th className="py-3 px-3 font-medium w-24">مسئول (Owner)</th>
+                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_target" defaultTitle="تارگت/شاخص" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_current" defaultTitle="آمار فعلی" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_final" defaultTitle="مقدار نهایی" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    {isProject && <th className="py-3 px-3 font-medium w-64">مایلستون‌ها / ساب‌تسک‌ها</th>}
+                                    <th className="py-3 px-3 font-medium w-36">پرفورمنس / پیشرفت</th>
+                                    <th className="py-3 px-3 font-medium w-32">
+                                        وضعیت {isEditing && <StatusManager statuses={availableStatuses} onUpdate={s => onUpdateSettings('statuses', s)} />}
                                     </th>
-                                    <th className="py-3 px-4 font-medium min-w-[200px]">چالش‌ها و ملاحظات</th>
-                                    {isEditing && <th className="py-3 px-4 font-medium text-center w-12">حذف</th>}
+                                    <th className="py-3 px-3 font-medium min-w-[180px]">چالش‌ها و ملاحظات</th>
+                                    <th className="py-3 px-3 font-medium min-w-[200px]"><EditableTitle titleKey="col_resolutions" defaultTitle="مصوبات و تاریخ" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>
+                                    {isEditing && <th className="py-3 px-3 font-medium text-center w-12">حذف</th>}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800/60">
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                                 {localData.map((row) => {
-                                    const safeSubtasks = Array.isArray(row.subtasks) ? row.subtasks : []; // بررسی سلامت دیتای ابری
+                                    // منطق هوشمند محاسبه درصدها
+                                    let displayPercent = 0;
+                                    if (isProject) {
+                                        if (row.subtasks && row.subtasks.length > 0) {
+                                            const completed = row.subtasks.filter(st => st.status === 'انجام شده').length;
+                                            displayPercent = (completed / row.subtasks.length) * 100;
+                                        } else {
+                                            displayPercent = Number(row.progress) || 0; // اهرم دستی اگر ساب تسک نداشت
+                                        }
+                                    } else {
+                                        const rowValue = extractNumber(row.current);
+                                        displayPercent = totalCurrentStats > 0 ? (rowValue / totalCurrentStats) * 100 : 0;
+                                    }
+                                    
                                     return (
-                                    <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="py-3 px-4">
-                                            {isEditing ? <input type="text" value={row.name||''} onChange={e=>handleChange(row.id, 'name', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="font-bold text-slate-200">{row.name||'-'}</span>}
+                                    <tr key={row.id} className="table-row-hover align-top transition-colors">
+                                        <td className="py-3 px-3">
+                                            {isEditing ? <input type="text" value={row.name||''} onChange={e=>handleChange(row.id, 'name', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="font-bold text-dynamic-title whitespace-normal">{row.name||'-'}</span>}
                                         </td>
-                                        <td className="py-3 px-4">
-                                            {isEditing ? <input type="text" value={row.owner||''} onChange={e=>handleChange(row.id, 'owner', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">{row.owner||'-'}</span>}
+                                        <td className="py-3 px-3">
+                                            {isEditing ? <input type="text" value={row.owner||''} onChange={e=>handleChange(row.id, 'owner', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="text-xs bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300">{row.owner||'-'}</span>}
                                         </td>
                                         
                                         {!isProject && (
                                             <>
-                                                <td className="py-3 px-4">{isEditing ? <input type="text" value={row.target||''} onChange={e=>handleChange(row.id, 'target', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="text-slate-300 text-xs">{row.target||'-'}</span>}</td>
-                                                <td className="py-3 px-4">{isEditing ? <input type="text" value={row.current||''} onChange={e=>handleChange(row.id, 'current', e.target.value)} className="w-full text-xs p-1.5 rounded" /> : <span className="text-slate-300 text-xs">{row.current||'-'}</span>}</td>
+                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.target||''} onChange={e=>handleChange(row.id, 'target', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="text-slate-600 dark:text-slate-300 text-xs">{row.target||'-'}</span>}</td>
+                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.current||''} onChange={e=>handleChange(row.id, 'current', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" placeholder="مثلا ۱۱۵" /> : <span className="font-bold text-blue-600 dark:text-blue-400 text-xs">{row.current||'-'}</span>}</td>
+                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.finalValue||''} onChange={e=>handleChange(row.id, 'finalValue', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="text-slate-600 dark:text-slate-300 text-xs font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{row.finalValue||'-'}</span>}</td>
                                             </>
                                         )}
 
                                         {isProject && (
-                                            <td className="py-2 px-4">
-                                                {isEditing ? <SubtaskEditor value={safeSubtasks} onChange={v=>handleChange(row.id, 'subtasks', v)} /> : 
-                                                    <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
-                                                        {safeSubtasks.length > 0 ? safeSubtasks.map((st, i)=>(
-                                                            <div key={i} className="text-[11px] flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.status==='انجام شده'?'bg-green-500':st.status==='در حال انجام'?'bg-blue-500':'bg-slate-600'}`}></span><span className="text-slate-300">{st.title}</span><span className="text-slate-500 opacity-70">({st.status})</span></div>
-                                                        )) : <span className="text-slate-600 text-xs">-</span>}
+                                            <td className="py-2 px-3">
+                                                {isEditing ? <SubtaskEditor value={row.subtasks} onChange={v=>handleChange(row.id, 'subtasks', v)} /> : 
+                                                    <div className="space-y-1.5 pt-1">
+                                                        {(row.subtasks||[]).length > 0 ? row.subtasks.map((st, i)=>(
+                                                            <div key={i} className="text-[11px] flex items-center gap-1.5 whitespace-normal leading-tight">
+                                                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.status==='انجام شده'?'bg-emerald-500':st.status==='در حال انجام'?'bg-blue-500':'bg-slate-400'}`}></span>
+                                                                <span className="text-slate-700 dark:text-slate-200">{st.title}</span>
+                                                                <span className="text-slate-500 text-[10px]">({st.status})</span>
+                                                            </div>
+                                                        )) : <span className="text-slate-400 text-xs">-</span>}
                                                     </div>
                                                 }
                                             </td>
                                         )}
 
-                                        <td className="py-3 px-4">
+                                        <td className="py-3 px-3 align-middle">
                                             {isEditing ? (
-                                                <div className="flex flex-col justify-center min-w-[120px]">
-                                                    <div className="flex items-center gap-2">
-                                                        <input 
-                                                            type="range" 
-                                                            min="0" 
-                                                            max="100" 
-                                                            value={isProject ? (row.progress||0) : (row.performance||0)} 
-                                                            onChange={e=>handleChange(row.id, isProject?'progress':'performance', e.target.value)} 
-                                                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all" 
-                                                        />
-                                                        <span className="text-xs font-bold text-slate-300 w-8">{isProject ? (row.progress||0) : (row.performance||0)}%</span>
+                                                isProject ? (
+                                                    (row.subtasks && row.subtasks.length > 0) ? (
+                                                        <div className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 p-1.5 rounded text-center border border-slate-200 dark:border-slate-700">
+                                                            محاسبه خودکار از مایلستون‌ها
+                                                            <div className="font-bold text-blue-600 dark:text-blue-400 mt-0.5">{displayPercent.toFixed(0)}%</div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <input type="range" min="0" max="100" value={row.progress||0} onChange={e=>handleChange(row.id, 'progress', e.target.value)} className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 w-8">{row.progress||0}%</span>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 p-1.5 rounded text-center border border-slate-200 dark:border-slate-700">
+                                                        محاسبه خودکار سهم کل
+                                                        <div className="font-bold text-blue-600 dark:text-blue-400 mt-0.5">{displayPercent.toFixed(0)}%</div>
                                                     </div>
-                                                </div>
+                                                )
                                             ) : (
-                                                <ProgressBar percent={isProject ? row.progress : row.performance} />
+                                                <div className="mt-1">
+                                                    <ProgressBar percent={displayPercent} />
+                                                    {!isProject && <div className="text-[9px] text-slate-400 mt-1 mr-1">سهم از کل آمار</div>}
+                                                    {isProject && row.subtasks && row.subtasks.length > 0 && <div className="text-[9px] text-slate-400 mt-1 mr-1">بر اساس مایلستون‌ها</div>}
+                                                </div>
                                             )}
                                         </td>
 
-                                        <td className="py-3 px-4">
+                                        <td className="py-3 px-3">
                                             {isEditing ? (
-                                                <select value={row.status||''} onChange={e=>handleChange(row.id, 'status', e.target.value)} className="w-full text-xs p-1.5 rounded appearance-none">
+                                                <select value={row.status||''} onChange={e=>handleChange(row.id, 'status', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded">
                                                     <option value="">انتخاب...</option>
                                                     {availableStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                                                 </select>
                                             ) : (
-                                                <span className="text-[11px] font-bold bg-blue-900/30 text-blue-400 border border-blue-800/50 px-2 py-1 rounded">{row.status||'-'}</span>
+                                                <span className="text-[11px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 px-2 py-1 rounded whitespace-nowrap">{row.status||'-'}</span>
                                             )}
                                         </td>
 
-                                        <td className="py-3 px-4">
-                                            {isEditing ? <textarea rows="2" value={row.challenges||''} onChange={e=>handleChange(row.id, 'challenges', e.target.value)} className="w-full text-xs p-1.5 rounded resize-none" placeholder="یادداشت..." /> : <div className="text-[11px] text-slate-400 max-w-xs whitespace-normal leading-relaxed">{row.challenges||'-'}</div>}
+                                        <td className="py-3 px-3">
+                                            {isEditing ? <textarea rows="3" value={row.challenges||''} onChange={e=>handleChange(row.id, 'challenges', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded resize-none" placeholder="شرح چالش..." /> : <div className="text-[11px] text-slate-600 dark:text-slate-400 whitespace-normal leading-relaxed">{row.challenges||'-'}</div>}
+                                        </td>
+
+                                        <td className="py-3 px-3 border-r border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30">
+                                            {isEditing ? (
+                                                <div className="space-y-1.5">
+                                                    <textarea rows="2" value={row.resolutionText||''} onChange={e=>handleChange(row.id, 'resolutionText', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded resize-none" placeholder="متن مصوبه..." />
+                                                    <input type="text" value={row.resolutionDate||''} onChange={e=>handleChange(row.id, 'resolutionDate', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" placeholder="تاریخ مصوبه (مثلا ۱۴۰۳/۰۵/۱۲)" />
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col gap-1.5 min-w-[150px]">
+                                                    <div className="text-[11px] font-medium text-slate-700 dark:text-slate-300 whitespace-normal leading-relaxed border-b border-slate-200 dark:border-slate-700 pb-1">{row.resolutionText || <span className="text-slate-400 italic">بدون مصوبه</span>}</div>
+                                                    {row.resolutionDate && <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1"><i className="fa-regular fa-calendar"></i> {row.resolutionDate}</div>}
+                                                </div>
+                                            )}
                                         </td>
 
                                         {isEditing && (
-                                            <td className="py-3 px-4 text-center">
-                                                <button onClick={() => handleRemove(row.id)} className="text-slate-500 hover:text-red-400 transition-colors p-2 bg-slate-950 rounded-lg hover:bg-slate-900"><i className="fa-solid fa-trash-can text-sm"></i></button>
+                                            <td className="py-3 px-3 text-center align-middle">
+                                                <button onClick={() => handleRemove(row.id)} className="text-red-500 hover:text-white hover:bg-red-500 p-2 rounded transition-colors"><i className="fa-solid fa-trash-can"></i></button>
                                             </td>
                                         )}
                                     </tr>
@@ -308,8 +353,8 @@
                         </table>
                         
                         {isEditing && (
-                            <div className="p-4 border-t border-slate-800/60 bg-slate-900/30">
-                                <button onClick={handleAdd} className="text-xs flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold transition-colors">
+                            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                <button onClick={handleAdd} className="text-xs flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold hover:underline">
                                     <i className="fa-solid fa-plus-circle"></i> افزودن ردیف جدید
                                 </button>
                             </div>
@@ -319,110 +364,114 @@
             );
         };
 
-        // --- بخش دپارتمان ---
-        const DepartmentView = ({ teamKey, departmentName, iconClass, data, settings, updateData, updateSettings }) => (
-            <div id={`section-${teamKey}`} className="pt-8 pb-12 border-b border-slate-800/80 scroll-mt-20 fade-in">
+        const DepartmentView = ({ teamKey, iconClass, data, settings, updateData, updateSettings, isEditingTitles }) => (
+            <div id={`section-${teamKey}`} className="pt-8 pb-12 border-b border-slate-200 dark:border-slate-800 scroll-mt-20 fade-in">
                 <div className="mb-6 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-blue-500/30 text-blue-400 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shadow-sm">
                         <i className={iconClass}></i>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-100 tracking-tight">{departmentName}</h2>
+                    <div className="flex-1">
+                        <h2 className="text-2xl font-black text-dynamic-title tracking-tight">
+                            <EditableTitle titleKey={`team_${teamKey}`} defaultTitle="نام دپارتمان" isEditingTitles={isEditingTitles} settings={settings} updateSettings={updateSettings} />
+                        </h2>
                         <p className="text-slate-500 text-xs mt-1 font-medium">پایش لاین‌های روتین و پروژه‌های در حال توسعه</p>
                     </div>
                 </div>
-                <StandardSection type="line" title="لاین‌های روتین (شاخص‌های عملکردی)" iconClass="fa-solid fa-chart-line" data={data?.lines || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, lines: newData })} />
-                <StandardSection type="project" title="پروژه‌ها و توسعه (تایم‌لاین و مایلستون‌ها)" iconClass="fa-solid fa-rocket" data={data?.projects || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, projects: newData })} />
+                <StandardSection type="line" title="لاین‌های روتین (شاخص‌های عملکردی)" iconClass="fa-solid fa-chart-line" data={data?.lines || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, lines: newData })} isEditingTitles={isEditingTitles} />
+                <StandardSection type="project" title="پروژه‌ها و توسعه (تایم‌لاین و مایلستون‌ها)" iconClass="fa-solid fa-rocket" data={data?.projects || []} settings={settings} onUpdateSettings={updateSettings} onSaveData={(newData) => updateData(teamKey, { ...data, projects: newData })} isEditingTitles={isEditingTitles} />
             </div>
         );
 
-        // --- کامپوننت مایندمپ (درختی) ---
-        const MindMapNode = ({ title, type, children }) => {
-            return (
-                <div className="relative flex flex-col mt-3 first:mt-0">
-                    <div className="flex items-center relative z-10">
-                        <div className="absolute w-6 border-t-2 border-slate-700 -right-6"></div>
-                        <div className={`px-3 py-1.5 rounded-lg border shadow-md flex items-center gap-2 whitespace-nowrap
-                            ${type === 'root' ? 'bg-blue-600 border-blue-400 text-white text-base font-black' : 
-                              type === 'team' ? 'bg-slate-800 border-blue-500/50 text-blue-300 text-[13px] font-bold' : 
-                              type === 'category' ? 'bg-slate-800 border-slate-600 text-amber-400 text-[11px] font-bold' : 
-                              'bg-slate-950 border-slate-700/80 text-slate-300 text-[11px] hover:border-blue-500 transition-colors cursor-default'}`}>
-                            {title}
+        const MindMapSection = ({ data, settings }) => {
+            const getTitle = (key, def) => settings?.titles?.[key] || def;
+
+            const TeamBranch = ({ team, data, side, top }) => {
+                const items = [...(data?.lines||[]), ...(data?.projects||[])].slice(0, 5); // محدودیت نمایش برای فشردگی
+                const isLeft = side === 'left';
+                
+                return (
+                    <div className={`absolute flex items-center ${isLeft ? 'justify-end' : 'justify-start'} z-10 hover:z-20 transition-all`} 
+                         style={{ top: top, [isLeft ? 'right' : 'left']: '55%', width: '42%', transform: 'translateY(-50%)' }}>
+                        
+                        {isLeft && (
+                            <>
+                                <div className="flex flex-col items-end gap-1.5 pr-2 relative border-r-2 border-slate-400 dark:border-slate-500/50 mr-1.5">
+                                     {items.map((item, i) => (
+                                         <div key={i} className="flex items-center relative pr-2">
+                                             <div className="absolute right-0 w-2 h-px bg-slate-400 dark:bg-slate-500/50"></div>
+                                             <div className="text-[9px] px-1.5 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-sm whitespace-nowrap text-right max-w-[120px] truncate text-slate-700 dark:text-slate-300" dir="rtl">{item.name || 'بدون نام'}</div>
+                                         </div>
+                                     ))}
+                                     {items.length === 0 && <div className="text-[9px] text-slate-400 pr-2">خالی</div>}
+                                </div>
+                                <div className="w-3 h-px bg-slate-400 dark:bg-slate-500/50"></div>
+                            </>
+                        )}
+
+                        <div className="bg-slate-100 dark:bg-slate-800 border border-blue-400 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 px-2 py-1.5 rounded-lg text-[10px] md:text-xs font-bold whitespace-nowrap shadow-md cursor-default transform hover:scale-105 transition-transform z-10" dir="rtl">
+                           <i className={`fa-solid ${team.icon} ml-1`}></i> {team.name}
                         </div>
+
+                        {!isLeft && (
+                            <>
+                                <div className="w-3 h-px bg-slate-400 dark:bg-slate-500/50"></div>
+                                <div className="flex flex-col items-start gap-1.5 pl-2 relative border-l-2 border-slate-400 dark:border-slate-500/50 ml-1.5">
+                                     {items.map((item, i) => (
+                                         <div key={i} className="flex items-center relative pl-2">
+                                             <div className="absolute left-0 w-2 h-px bg-slate-400 dark:bg-slate-500/50"></div>
+                                             <div className="text-[9px] px-1.5 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-sm whitespace-nowrap text-right max-w-[120px] truncate text-slate-700 dark:text-slate-300" dir="rtl">{item.name || 'بدون نام'}</div>
+                                         </div>
+                                     ))}
+                                     {items.length === 0 && <div className="text-[9px] text-slate-400 pl-2">خالی</div>}
+                                </div>
+                            </>
+                        )}
                     </div>
-                    {children && React.Children.toArray(children).length > 0 && (
-                        <div className="relative pr-6 mt-1 flex flex-col gap-1 pb-1">
-                            <div className="absolute right-0 top-0 bottom-[14px] border-r-2 border-slate-700"></div>
-                            {children}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const MindMapSection = ({ data }) => {
-            const teams = [
-                { key: 'support', name: 'تیم پشتیبانی', icon: 'fa-headset' },
-                { key: 'content', name: 'محتوا و پژوهش', icon: 'fa-pen-nib' },
-                { key: 'marketing', name: 'مارکتینگ و رشد', icon: 'fa-bullhorn' },
-                { key: 'pr', name: 'توسعه همکاری‌ها', icon: 'fa-handshake' },
-                { key: 'product', name: 'محصول و فنی', icon: 'fa-code' }
-            ];
+                )
+            };
 
             return (
-                <div id="section-mindmap" className="pt-8 pb-12 border-b border-slate-800/80 scroll-mt-20 fade-in">
+                <div id="section-mindmap" className="pt-8 pb-12 border-b border-slate-200 dark:border-slate-800/80 scroll-mt-20 fade-in">
                     <div className="mb-6 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-blue-500/30 text-blue-400 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shadow-sm">
                             <i className="fa-solid fa-sitemap"></i>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-100 tracking-tight">پاکار در یک نگاه (Mind Map)</h2>
-                            <p className="text-blue-500/80 text-xs mt-1 font-medium">نمودار درختی تمام لاین‌ها و پروژه‌های سازمان (آپدیت خودکار)</p>
+                            <h2 className="text-2xl font-black text-dynamic-title tracking-tight">پاکار در یک نگاه (نقشه سازمانی)</h2>
+                            <p className="text-slate-500 text-xs mt-1 font-medium">نمای ۳۶۰ درجه و فشرده از اتصال تیم‌ها و پروژه‌ها</p>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/60 rounded-xl border border-slate-800 overflow-x-auto p-6 shadow-lg hover:border-slate-700 transition-colors custom-scrollbar">
-                        <div className="flex gap-6 min-w-max pb-4 pr-4">
-                            <div className="relative flex items-center z-10">
-                                <div className="px-5 py-3 rounded-xl bg-gradient-to-l from-blue-600 to-indigo-700 text-white font-black text-sm border border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.3)]">پلتفرم پاکار</div>
-                                <div className="absolute w-6 border-t-2 border-slate-700 -left-6 top-1/2"></div>
-                            </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 w-full min-h-[500px] md:min-h-[550px] relative overflow-hidden shadow-inner" dir="ltr">
+                        {/* خطوط اتصال ستاره‌ای */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                            <path d="M 50% 50% C 45% 50%, 48% 20%, 45% 20%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
+                            <path d="M 50% 50% L 45% 50%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
+                            <path d="M 50% 50% C 45% 50%, 48% 80%, 45% 80%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
                             
-                            <div className="relative flex flex-col justify-center">
-                                <div className="absolute right-0 top-[28px] bottom-[28px] border-r-2 border-slate-700"></div>
-                                {teams.map((team) => {
-                                    const teamData = data[team.key];
-                                    const lines = Array.isArray(teamData?.lines) ? teamData.lines : [];
-                                    const projects = Array.isArray(teamData?.projects) ? teamData.projects : [];
-                                    if (lines.length === 0 && projects.length === 0) return null;
-                                    
-                                    return (
-                                        <MindMapNode key={team.key} title={<><i className={`fa-solid ${team.icon} opacity-80`}></i> {team.name}</>} type="team">
-                                            {lines.length > 0 && (
-                                                <MindMapNode title="لاین‌های روتین" type="category">
-                                                    {lines.map(line => (
-                                                        <MindMapNode key={`l-${line.id}`} title={line.name || 'بدون نام'} type="item" />
-                                                    ))}
-                                                </MindMapNode>
-                                            )}
-                                            {projects.length > 0 && (
-                                                <MindMapNode title="پروژه‌ها و توسعه" type="category">
-                                                    {projects.map(proj => (
-                                                        <MindMapNode key={`p-${proj.id}`} title={proj.name || 'بدون نام'} type="item" />
-                                                    ))}
-                                                </MindMapNode>
-                                            )}
-                                        </MindMapNode>
-                                    )
-                                })}
+                            <path d="M 50% 50% C 55% 50%, 52% 30%, 55% 30%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
+                            <path d="M 50% 50% C 55% 50%, 52% 70%, 55% 70%" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 2" fill="none" />
+                        </svg>
+
+                        {/* هسته مرکزی */}
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                            <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center font-black text-white shadow-[0_0_20px_rgba(59,130,246,0.6)] border-4 border-white dark:border-slate-950 text-lg md:text-xl transform hover:scale-105 transition-transform cursor-pointer">
+                                پاکار
                             </div>
                         </div>
+
+                        {/* شاخه‌های تیم‌ها (جانمایی برای قرارگیری کامل در یک اسکرین) */}
+                        <TeamBranch team={{ name: getTitle('team_marketing', 'مارکتینگ'), icon: 'fa-bullhorn' }} data={data.marketing} side="left" top="20%" />
+                        <TeamBranch team={{ name: getTitle('team_pr', 'همکاری‌ها'), icon: 'fa-handshake' }} data={data.pr} side="left" top="50%" />
+                        <TeamBranch team={{ name: getTitle('team_product', 'محصول و فنی'), icon: 'fa-code' }} data={data.product} side="left" top="80%" />
+                        
+                        <TeamBranch team={{ name: getTitle('team_support', 'پشتیبانی'), icon: 'fa-headset' }} data={data.support} side="right" top="30%" />
+                        <TeamBranch team={{ name: getTitle('team_content', 'محتوا و پژوهش'), icon: 'fa-pen-nib' }} data={data.content} side="right" top="70%" />
                     </div>
                 </div>
             );
         };
 
-        // --- بدنه اصلی ---
         function App() {
             const [data, setData] = useState(initialData);
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -430,41 +479,37 @@
             const [isLoading, setIsLoading] = useState(false);
             const [notification, setNotification] = useState("");
             const [activeSection, setActiveSection] = useState('overview');
+            const [isDarkMode, setIsDarkMode] = useState(false); // تم روشن پیش‌فرض
+            const [isEditingTitles, setIsEditingTitles] = useState(false);
 
+            // اعمال تم دارک و لایت روی HTML
+            useEffect(() => {
+                if (isDarkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }, [isDarkMode]);
+
+            // لود اولیه از سرور
             useEffect(() => {
                 if (GOOGLE_SCRIPT_URL !== "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") {
                     setIsLoading(true);
                     fetch(GOOGLE_SCRIPT_URL).then(res => res.json()).then(result => {
-                        // ادغام هوشمند: پیشگیری از کرش در صورت عدم تطابق ساختار قدیمی گوگل با جدید
                         if (result && !result.error && (result.support || result.settings)) { 
-                            const mergedData = { 
-                                ...initialData, 
-                                ...result, 
-                                settings: { ...initialData.settings, ...(result.settings || {}) }
-                            };
-                            setData(mergedData);
+                            setData({ ...initialData, ...result, settings: { ...initialData.settings, ...(result.settings || {}) } });
                             showNotification("داده‌ها همگام‌سازی شدند ✅"); 
-                        } else {
-                            showNotification("دیتابیس ابری خالی است. از نسخه پیش‌فرض استفاده می‌شود.");
                         }
                         setIsLoading(false);
-                    }).catch(err => { 
-                        showNotification("خطا در ارتباط با گوگل شیت! (دسترسی اسکریپت را چک کنید) ❌", true); 
-                        setIsLoading(false); 
-                    });
+                    }).catch(() => { showNotification("خطا در ارتباط با سرور!", true); setIsLoading(false); });
                 }
             }, []);
 
-            // Scroll spy for sidebar active state
+            // Scroll spy
             useEffect(() => {
                 const handleScroll = () => {
                     const sections = ['overview', 'mindmap', 'support', 'content', 'marketing', 'pr', 'product'];
                     let current = 'overview';
-                    for (const section of sections) {
-                        const element = document.getElementById(`section-${section}`);
-                        if (element && window.scrollY >= (element.offsetTop - 150)) {
-                            current = section;
-                        }
+                    for (const sec of sections) {
+                        const el = document.getElementById(`section-${sec}`);
+                        if (el && window.scrollY >= (el.offsetTop - 200)) current = sec;
                     }
                     setActiveSection(current);
                 };
@@ -472,120 +517,109 @@
                 return () => window.removeEventListener('scroll', handleScroll);
             }, []);
 
-            const showNotification = (msg, isError = false) => {
-                setNotification({ msg, isError });
-                setTimeout(() => setNotification(""), 4000);
-            };
-
+            const showNotification = (msg, isError = false) => { setNotification({ msg, isError }); setTimeout(() => setNotification(""), 4000); };
             const updateData = (teamKey, teamData) => setData(prev => ({ ...prev, [teamKey]: teamData }));
-            
-            // رفع خطای احتمالی در ذخیره تنظیمات جدید
-            const updateSettings = (key, val) => setData(prev => ({ 
-                ...prev, 
-                settings: { ...(prev.settings || {}), [key]: val } 
-            }));
+            const updateSettings = (key, val) => setData(prev => ({ ...prev, settings: { ...(prev.settings || {}), [key]: val } }));
 
             const saveAllToCloud = () => {
-                if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") { showNotification("لینک گوگل شیت تنظیم نشده است!", true); return; }
+                setIsEditingTitles(false);
+                if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_WEB_APP_URL") return showNotification("لینک سرور تنظیم نشده!", true);
                 setIsSaving(true);
                 fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(data) })
                 .then(() => { showNotification("تغییرات با موفقیت در فضای ابری ثبت شد ✅"); setIsSaving(false); })
-                .catch(() => { showNotification("خطا در ارتباط با سرور! ❌", true); setIsSaving(false); });
+                .catch(() => { showNotification("خطا در ثبت!", true); setIsSaving(false); });
             };
 
-            const navItems = [
-                { id: 'overview', label: 'چشم‌انداز مدیرعامل', icon: 'fa-solid fa-crosshairs' },
-                { id: 'mindmap', label: 'پاکار در یک نگاه', icon: 'fa-solid fa-sitemap' },
-                { id: 'support', label: 'تیم پشتیبانی', icon: 'fa-solid fa-headset' },
-                { id: 'content', label: 'محتوا و پژوهش', icon: 'fa-solid fa-pen-nib' },
-                { id: 'marketing', label: 'مارکتینگ و رشد', icon: 'fa-solid fa-bullhorn' },
-                { id: 'pr', label: 'توسعه همکاری‌ها', icon: 'fa-solid fa-handshake' },
-                { id: 'product', label: 'محصول و فنی', icon: 'fa-solid fa-code' },
-            ];
-
-            const scrollToSection = (id) => {
-                setIsSidebarOpen(false);
-                document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth' });
-            };
+            const scrollTo = (id) => { setIsSidebarOpen(false); document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth' }); };
 
             return (
-                <div className="min-h-screen flex flex-col md:flex-row text-slate-200">
+                <div className="min-h-screen flex flex-col md:flex-row text-slate-800 dark:text-slate-200 font-sans">
                     {/* Header Mobile */}
-                    <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-40 shadow-md">
+                    <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20">پ</div>
-                            <h1 className="font-bold text-slate-100">داشبورد پاکار</h1>
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">پ</div>
+                            <h1 className="font-bold text-dynamic-title">داشبورد پاکار</h1>
                         </div>
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-400 text-xl px-2"><i className={`fa-solid ${isSidebarOpen ? 'fa-xmark' : 'fa-bars'}`}></i></button>
+                        <div className="flex gap-4">
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-slate-500"><i className={`fa-solid ${isDarkMode ? 'fa-sun text-yellow-400' : 'fa-moon text-indigo-600'} text-xl`}></i></button>
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-500"><i className={`fa-solid ${isSidebarOpen ? 'fa-xmark' : 'fa-bars'} text-xl`}></i></button>
+                        </div>
                     </div>
 
                     {/* Sidebar */}
-                    <aside className={`fixed md:sticky top-0 inset-y-0 right-0 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-slate-950 border-l border-slate-800 flex-shrink-0 z-50 flex flex-col h-screen`}>
-                        <div className="hidden md:flex p-6 border-b border-slate-800/80 items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-[0_0_15px_rgba(59,130,246,0.3)]">پ</div>
+                    <aside className={`fixed md:sticky top-0 inset-y-0 right-0 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 flex-shrink-0 z-50 flex flex-col h-screen`}>
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800/80 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md">پ</div>
                             <div>
-                                <h1 className="font-bold text-lg text-slate-100 tracking-tight">داشبورد پاکار</h1>
-                                <p className="text-[11px] text-blue-400/80 font-medium tracking-wide">مرکز کنترل ابری (شوری مدیران)</p>
+                                <h1 className="font-bold text-lg text-dynamic-title tracking-tight">داشبورد پاکار</h1>
+                                <p className="text-[11px] text-slate-500 dark:text-blue-400/80 font-medium">مرکز کنترل شوری مدیران</p>
                             </div>
                         </div>
                         
-                        <nav className="p-4 flex-1 space-y-1.5 overflow-y-auto custom-scrollbar">
-                            {navItems.map(item => {
-                                const isActive = activeSection === item.id;
-                                return (
-                                    <button key={item.id} onClick={() => scrollToSection(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-[13px] font-medium
-                                        ${isActive ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20 shadow-[inset_0_0_20px_rgba(59,130,246,0.05)]' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 border border-transparent'}`}>
-                                        <i className={`${item.icon} w-5 text-center text-lg ${isActive ? 'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'opacity-70'}`}></i> {item.label}
-                                    </button>
-                                )
-                            })}
+                        <nav className="p-4 flex-1 space-y-1.5 overflow-y-auto">
+                            {[
+                                { id: 'overview', label: 'چشم‌انداز مدیرعامل', icon: 'fa-solid fa-crosshairs' },
+                                { id: 'mindmap', label: 'پاکار در یک نگاه', icon: 'fa-solid fa-sitemap' },
+                                { id: 'support', label: data.settings?.titles?.team_support || 'تیم پشتیبانی', icon: 'fa-solid fa-headset' },
+                                { id: 'content', label: data.settings?.titles?.team_content || 'محتوا و پژوهش', icon: 'fa-solid fa-pen-nib' },
+                                { id: 'marketing', label: data.settings?.titles?.team_marketing || 'مارکتینگ و رشد', icon: 'fa-solid fa-bullhorn' },
+                                { id: 'pr', label: data.settings?.titles?.team_pr || 'توسعه همکاری‌ها', icon: 'fa-solid fa-handshake' },
+                                { id: 'product', label: data.settings?.titles?.team_product || 'محصول و فنی', icon: 'fa-solid fa-code' }
+                            ].map(item => (
+                                <button key={item.id} onClick={() => scrollTo(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-[13px] font-bold ${activeSection === item.id ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent'}`}>
+                                    <i className={`${item.icon} w-5 text-center text-lg ${activeSection === item.id ? 'text-blue-600 drop-shadow-sm' : 'opacity-70'}`}></i> {item.label}
+                                </button>
+                            ))}
                         </nav>
 
-                        <div className="p-5 border-t border-slate-800/80 bg-slate-950">
-                            <button onClick={saveAllToCloud} disabled={isSaving} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] disabled:opacity-50">
+                        <div className="p-5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950 space-y-3">
+                            <div className="flex justify-between items-center px-1">
+                                <span className="text-xs font-bold text-slate-500">تم روشن / تاریک</span>
+                                <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-slate-200 dark:bg-slate-800 p-2 rounded-full shadow-inner"><i className={`fa-solid ${isDarkMode ? 'fa-moon text-indigo-400' : 'fa-sun text-yellow-500'}`}></i></button>
+                            </div>
+                            <button onClick={() => setIsEditingTitles(!isEditingTitles)} className={`w-full text-xs font-bold py-2 rounded-lg border ${isEditingTitles ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100'}`}>
+                                <i className="fa-solid fa-text-width"></i> {isEditingTitles ? "بستن ویرایش عناوین" : "ویرایش عناوین پایه‌ای"}
+                            </button>
+                            <button onClick={saveAllToCloud} disabled={isSaving} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors">
                                 <i className="fa-solid fa-cloud-arrow-up text-sm"></i> {isSaving ? "در حال ثبت..." : "ارسال نسخه نهایی به ابر"}
                             </button>
                         </div>
                     </aside>
 
-                    {/* Main Content Area */}
-                    <main className="flex-1 bg-[#020617] relative">
-                        {isSidebarOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
-                        
-                        {/* Notifications */}
+                    {/* Main Workspace */}
+                    <main className="flex-1 relative">
                         {notification && (
-                            <div className="fixed top-4 left-4 right-4 sm:left-auto sm:w-80 bg-slate-800 border border-slate-700 text-slate-100 text-xs p-3.5 rounded-xl shadow-2xl z-50 flex items-center gap-3 fade-in">
-                                <i className={`fa-solid ${notification.isError ? 'fa-triangle-exclamation text-red-400' : 'fa-circle-check text-emerald-400'} text-lg`}></i>
-                                <span className="font-medium">{notification.msg}</span>
+                            <div className="fixed top-4 left-4 right-4 sm:left-auto sm:w-80 bg-slate-800 text-white text-xs p-3.5 rounded-xl shadow-2xl z-50 flex items-center gap-3 fade-in">
+                                <i className={`fa-solid ${notification.isError ? 'fa-triangle-exclamation text-orange-400' : 'fa-circle-check text-emerald-400'} text-lg`}></i> <span className="font-medium">{notification.msg}</span>
                             </div>
                         )}
-
                         {isLoading && (
-                            <div className="fixed inset-0 bg-[#020617]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-3">
+                            <div className="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-3">
                                 <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm font-bold text-blue-400 tracking-wide animate-pulse">در حال دریافت جدیدترین داده‌ها از ابر...</span>
+                                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">در حال دریافت داده‌ها...</span>
                             </div>
                         )}
 
                         <div className="p-4 md:p-8 lg:p-12 max-w-[1400px] mx-auto">
-                            {/* Section: Overview */}
+                            {/* Overview Box */}
                             <div id="section-overview" className="mb-12 scroll-mt-24 fade-in">
-                                <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/60 rounded-3xl p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-5 rounded-full -mt-20 -mr-20 blur-3xl"></div>
-                                    <h2 className="text-3xl md:text-4xl font-black mb-4 relative z-10 text-transparent bg-clip-text bg-gradient-to-l from-blue-300 to-indigo-400">یکپارچگی در نگاه اول</h2>
-                                    <p className="text-slate-300/80 max-w-2xl leading-relaxed text-sm md:text-base font-medium relative z-10 border-r-2 border-blue-500 pr-4">این داشبورد بر اساس معماری استاندارد (لاین‌های کاری + پروژه‌های توسعه‌ای) طراحی شده است تا جلسات شوری مدیران با بالاترین بازدهی ذهنی برگزار شود. برای پایش دقیق به پایین اسکرول کنید.</p>
+                                <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
+                                    <h2 className="text-3xl md:text-4xl font-black mb-3">
+                                        <EditableTitle titleKey="mainHeader" defaultTitle="یکپارچگی در نگاه اول" isEditingTitles={isEditingTitles} settings={data.settings} updateSettings={updateSettings} className="bg-transparent border-white text-white w-full" />
+                                    </h2>
+                                    <p className="text-blue-100 max-w-2xl leading-relaxed text-sm md:text-base font-medium relative z-10 border-r-4 border-blue-400 pr-4">این داشبورد بر اساس معماری استاندارد (لاین‌های کاری + پروژه‌های توسعه‌ای) طراحی شده است تا جلسات شوری مدیران با بالاترین بازدهی ذهنی برگزار شود.</p>
                                 </div>
                             </div>
 
-                            {/* Section: Mind Map */}
-                            <MindMapSection data={data} />
+                            {/* Mind Map */}
+                            <MindMapSection data={data} settings={data.settings} />
 
-                            {/* Departments Rendered Sequentially */}
-                            <DepartmentView teamKey="support" departmentName="تیم پشتیبانی کاربران" iconClass="fa-solid fa-headset" data={data.support} settings={data.settings} updateData={updateData} updateSettings={updateSettings} />
-                            <DepartmentView teamKey="content" departmentName="تیم محتوا و پژوهش" iconClass="fa-solid fa-pen-nib" data={data.content} settings={data.settings} updateData={updateData} updateSettings={updateSettings} />
-                            <DepartmentView teamKey="marketing" departmentName="تیم مارکتینگ و رشد" iconClass="fa-solid fa-bullhorn" data={data.marketing} settings={data.settings} updateData={updateData} updateSettings={updateSettings} />
-                            <DepartmentView teamKey="pr" departmentName="دفتر توسعه همکاری‌ها (PR)" iconClass="fa-solid fa-handshake" data={data.pr} settings={data.settings} updateData={updateData} updateSettings={updateSettings} />
-                            <DepartmentView teamKey="product" departmentName="تیم محصول و فنی" iconClass="fa-solid fa-code" data={data.product} settings={data.settings} updateData={updateData} updateSettings={updateSettings} />
+                            {/* Departments */}
+                            <DepartmentView teamKey="support" iconClass="fa-solid fa-headset" data={data.support} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
+                            <DepartmentView teamKey="content" iconClass="fa-solid fa-pen-nib" data={data.content} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
+                            <DepartmentView teamKey="marketing" iconClass="fa-solid fa-bullhorn" data={data.marketing} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
+                            <DepartmentView teamKey="pr" iconClass="fa-solid fa-handshake" data={data.pr} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
+                            <DepartmentView teamKey="product" iconClass="fa-solid fa-code" data={data.product} settings={data.settings} updateData={updateData} updateSettings={updateSettings} isEditingTitles={isEditingTitles} />
                         </div>
                     </main>
                 </div>
