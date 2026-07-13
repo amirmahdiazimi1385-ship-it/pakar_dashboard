@@ -79,7 +79,8 @@
                     team_product: 'تیم محصول و فنی',
                     col_line_name: 'عنوان لاین کاری',
                     col_proj_name: 'عنوان پروژه',
-                    col_target: 'تارگت / شاخص',
+                    col_indicator: 'شاخص', // اضافه شده: ستون مستقل شاخص
+                    col_target: 'تارگت',    // تغییر یافته: ستون مستقل تارگت
                     col_current: 'آمار فعلی',
                     col_final: 'مقدار نهایی',
                     col_resolutions: 'مصوبات و تاریخ'
@@ -193,7 +194,8 @@
 
             const totalCurrentStats = !isProject ? localData.reduce((acc, row) => acc + extractNumber(row.current), 0) : 0;
 
-            const handleAdd = () => setLocalData([...localData, { id: Date.now(), name: '', owner: '', status: availableStatuses[0], challenges: '', resolutionText: '', resolutionDate: '', ...(isProject ? {progress: 0, subtasks: []} : {target: '', current: '', finalValue: ''}) }]);
+            // Indicator اضافه شده به ساختار پیش‌فرض ردیف جدید
+            const handleAdd = () => setLocalData([...localData, { id: Date.now(), name: '', owner: '', status: availableStatuses[0], challenges: '', resolutionText: '', resolutionDate: '', ...(isProject ? {progress: 0, subtasks: []} : {indicator: '', target: '', current: '', finalValue: ''}) }]);
             const handleRemove = (id) => setLocalData(localData.filter(item => item.id !== id));
             const handleChange = (id, key, value) => setLocalData(localData.map(item => item.id === id ? { ...item, [key]: value } : item));
             const handleSubmit = () => { onSaveData(localData); setIsEditing(false); };
@@ -216,14 +218,17 @@
                     </div>
                 
                     <div className="p-0 overflow-x-auto">
-                        <table className="w-full text-right text-sm whitespace-nowrap min-w-[1000px]">
+                        <table className="w-full text-right text-sm whitespace-nowrap min-w-[1100px]">
                             <thead>
                                 <tr className="text-slate-500 dark:text-slate-400 text-xs bg-slate-50 dark:bg-slate-900/50">
                                     <th className="py-3 px-3 font-medium min-w-[180px]"><EditableTitle titleKey={isProject?'col_proj_name':'col_line_name'} defaultTitle={isProject ? 'عنوان پروژه' : 'عنوان لاین کاری'} isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>
                                     <th className="py-3 px-3 font-medium w-24">مسئول (Owner)</th>
-                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_target" defaultTitle="تارگت/شاخص" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    {/* ستون‌های مجزا برای شاخص و تارگت */}
+                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_indicator" defaultTitle="شاخص" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_target" defaultTitle="تارگت" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
                                     {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_current" defaultTitle="آمار فعلی" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
                                     {!isProject && <th className="py-3 px-3 font-medium w-28"><EditableTitle titleKey="col_final" defaultTitle="مقدار نهایی" isEditingTitles={isEditingTitles} settings={settings} updateSettings={onUpdateSettings} /></th>}
+                                    
                                     {isProject && <th className="py-3 px-3 font-medium w-64">مایلستون‌ها / ساب‌تسک‌ها</th>}
                                     <th className="py-3 px-3 font-medium w-36">پرفورمنس / پیشرفت</th>
                                     <th className="py-3 px-3 font-medium w-32">
@@ -260,7 +265,9 @@
                                         
                                         {!isProject && (
                                             <>
-                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.target||''} onChange={e=>handleChange(row.id, 'target', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="text-slate-600 dark:text-slate-300 text-xs">{row.target||'-'}</span>}</td>
+                                                {/* فیلدها و سلول‌های مجزا برای شاخص و تارگت */}
+                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.indicator||''} onChange={e=>handleChange(row.id, 'indicator', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" placeholder="شاخص..." /> : <span className="text-slate-600 dark:text-slate-300 text-xs">{row.indicator||'-'}</span>}</td>
+                                                <td className="py-3 px-3">{isEditing ? <input type="text" value={row.target||''} onChange={e=>handleChange(row.id, 'target', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" placeholder="تارگت..." /> : <span className="text-slate-600 dark:text-slate-300 text-xs">{row.target||'-'}</span>}</td>
                                                 <td className="py-3 px-3">{isEditing ? <input type="text" value={row.current||''} onChange={e=>handleChange(row.id, 'current', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" placeholder="مثلا ۱۱۵" /> : <span className="font-bold text-blue-600 dark:text-blue-400 text-xs">{row.current||'-'}</span>}</td>
                                                 <td className="py-3 px-3">{isEditing ? <input type="text" value={row.finalValue||''} onChange={e=>handleChange(row.id, 'finalValue', e.target.value)} className="input-dynamic w-full text-xs p-1.5 rounded" /> : <span className="text-slate-600 dark:text-slate-300 text-xs font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{row.finalValue||'-'}</span>}</td>
                                             </>
@@ -501,7 +508,6 @@
                             </div>
                         )}
 
-                        {/* تغییر مقدار پدینگ‌ها و حداکثر عرض برای مانیتورهای استاندارد لپ‌تاپ */}
                         <div className="p-4 md:p-6 lg:p-8 max-w-[1280px] mx-auto">
                             
                             <div id="section-overview" className="mb-12 scroll-mt-24 fade-in">
